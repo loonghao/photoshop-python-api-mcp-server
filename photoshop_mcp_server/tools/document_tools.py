@@ -14,6 +14,7 @@ def register(mcp):
 
     Returns:
         list: List of registered tool names.
+
     """
     registered_tools = []
 
@@ -53,7 +54,7 @@ def register(mcp):
 
             # Get document properties safely
             try:
-                print(f"Document created, getting properties")
+                print("Document created, getting properties")
                 doc_name = doc.name
                 print(f"Document name: {doc_name}")
 
@@ -101,7 +102,7 @@ def register(mcp):
                     "document_name": name,
                     "width": width,
                     "height": height,
-                    "warning": f"Created document but couldn't get properties: {str(prop_error)}"
+                    "warning": f"Created document but couldn't get properties: {prop_error!s}"
                 }
         except Exception as e:
             print(f"Error creating document: {e}")
@@ -116,7 +117,7 @@ def register(mcp):
                 f"  height: {height}\n"
                 f"  name: {name}\n"
                 f"  mode: {mode}\n\n"
-                f"Error: {str(e)}\n\n"
+                f"Error: {e!s}\n\n"
                 f"Traceback:\n{tb_text}"
             )
 

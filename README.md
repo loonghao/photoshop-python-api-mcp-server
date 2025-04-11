@@ -6,35 +6,35 @@ A Model Context Protocol (MCP) server for Photoshop integration using photoshop-
 
 This project provides a bridge between the Model Context Protocol (MCP) and Adobe Photoshop, allowing AI assistants and other MCP clients to control Photoshop programmatically.
 
-## Features
-
-- **MCP Resources**: Access information about Photoshop and documents
-- **MCP Tools**: Control Photoshop with simple function calls
-- **Windows Support**: Works with Photoshop on Windows via COM interface
-
 ## Requirements
 
 - **Windows OS only**: This server uses COM interface which is only available on Windows
 - **Adobe Photoshop**: Must be installed locally (tested with versions CC2017 through 2024)
 - **Python**: Version 3.10 or higher
 
+## Installation
 
-This environment variable is passed to the underlying [photoshop-python-api](https://github.com/loonghao/photoshop-python-api) which uses it to connect to the specified Photoshop version.
+```bash
+# Install using pip
+pip install photoshop-mcp-server
 
-## MCP Host Integration
+# Or using uv
+uv install photoshop-mcp-server
+```
 
-This server is designed to work with various MCP hosts like Claude Desktop, Windsurf, Cline, and others.
+## MCP Host Configuration
 
-### Windsurf
+This server is designed to work with various MCP hosts. The `PS_VERSION` environment variable is used to specify which Photoshop version to connect to (e.g., "2024", "2023", "2022", etc.).
 
-To use with Windsurf, add the server to your Windsurf configuration:
+### Claude Desktop
+
+To use with Claude Desktop, add the following to your Claude Desktop configuration:
 
 ```json
 {
-  "mcpServers":  {
+  "mcpServers": {
     "photoshop": {
-      "command": "uvx",
-      "args": ["photoshop-mcp-server"],
+      "command": "ps-mcp",
       "env": {
         "PS_VERSION": "2024"
       }
@@ -43,32 +43,89 @@ To use with Windsurf, add the server to your Windsurf configuration:
 }
 ```
 
-This configuration allows MCP hosts to automatically discover and load the server with the correct metadata.
+### Windsurf
 
-## Available Resources
+To use with Windsurf, add the server to your Windsurf configuration:
+
+```json
+{
+  "mcpServers": {
+    "photoshop": {
+      "command": "ps-mcp",
+      "env": {
+        "PS_VERSION": "2024"
+      }
+    }
+  }
+}
+```
+
+### Cline
+
+To use with Cline, add the server to your Cline configuration:
+
+```json
+{
+  "mcpServers": {
+    "photoshop": {
+      "command": "ps-mcp",
+      "env": {
+        "PS_VERSION": "2024"
+      }
+    }
+  }
+}
+```
+
+### Using with uvx (Alternative)
+
+If you installed the package with uv and want to use uvx to run the server:
+
+```json
+{
+  "mcpServers": {
+    "photoshop": {
+      "command": "uvx",
+      "args": ["ps-mcp"],
+      "env": {
+        "PS_VERSION": "2024"
+      }
+    }
+  }
+}
+```
+
+## Key Features
+
+### Available Resources
 
 - `photoshop://info` - Get Photoshop application information
 - `photoshop://document/info` - Get active document information
 - `photoshop://document/layers` - Get layers in the active document
 
-## Available Tools
+### Available Tools
 
-### Document Tools
+The server provides various tools for controlling Photoshop:
 
-- `create_document` - Create a new Photoshop document
-- `open_document` - Open an existing document
-- `save_document` - Save the active document
+- **Document Tools**: Create, open, and save documents
+- **Layer Tools**: Create text layers, solid color layers, etc.
+- **Session Tools**: Get information about Photoshop session, active document, selection
 
-### Layer Tools
+## Basic Usage Example
 
-- `create_text_layer` - Create a text layer
-- `create_solid_color_layer` - Create a solid color layer
+Once configured in your MCP host, you can use the Photoshop MCP server in your AI assistant conversations. For example:
 
-### Session Tools
+```text
+User: Can you create a new Photoshop document and add a text layer with "Hello World"?
 
-- `get_session_info` - Get information about the current Photoshop session
-- `get_active_document_info` - Get detailed information about the active document
-- `get_selection_info` - Get information about the current selection
+AI Assistant: I'll create a new document and add the text layer for you.
+
+[The AI uses the Photoshop MCP server to:
+1. Create a new document using the `create_document` tool
+2. Add a text layer using the `create_text_layer` tool with the text "Hello World"]
+
+I've created a new Photoshop document and added a text layer with "Hello World".
+```
 
 ## License
 

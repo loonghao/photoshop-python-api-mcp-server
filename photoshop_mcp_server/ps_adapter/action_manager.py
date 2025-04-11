@@ -4,7 +4,7 @@ This module provides utilities for working with Photoshop's Action Manager API,
 which is a lower-level API that is more stable than the JavaScript API.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import photoshop.api as ps
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
@@ -22,6 +22,7 @@ class ActionManager:
 
         Returns:
             The character ID.
+
         """
         ps_app = PhotoshopApp()
         return ps_app.app.stringIDToTypeID(string_id)
@@ -35,17 +36,19 @@ class ActionManager:
 
         Returns:
             The type ID.
+
         """
         ps_app = PhotoshopApp()
         return ps_app.app.charIDToTypeID(char_id)
 
     @classmethod
-    def get_active_document_info(cls) -> Dict[str, Any]:
+    def get_active_document_info(cls) -> dict[str, Any]:
         """Get information about the active document using Action Manager.
 
         Returns:
             A dictionary containing information about the active document,
             or an error message if no document is open.
+
         """
         try:
             ps_app = PhotoshopApp()
@@ -155,12 +158,13 @@ class ActionManager:
             }
 
     @classmethod
-    def get_selection_info(cls) -> Dict[str, Any]:
+    def get_selection_info(cls) -> dict[str, Any]:
         """Get information about the current selection using Action Manager.
 
         Returns:
             A dictionary containing information about the current selection,
             or an indication that there is no selection.
+
         """
         try:
             ps_app = PhotoshopApp()
@@ -244,7 +248,7 @@ class ActionManager:
                 return {
                     "success": True,
                     "has_selection": True,
-                    "error": f"Selection exists but couldn't get bounds: {str(e)}"
+                    "error": f"Selection exists but couldn't get bounds: {e!s}"
                 }
 
             # Fallback if we couldn't get bounds
@@ -266,11 +270,12 @@ class ActionManager:
             }
 
     @classmethod
-    def get_session_info(cls) -> Dict[str, Any]:
+    def get_session_info(cls) -> dict[str, Any]:
         """Get information about the current Photoshop session using Action Manager.
 
         Returns:
             A dictionary containing information about the current Photoshop session.
+
         """
         try:
             ps_app = PhotoshopApp()

@@ -4,7 +4,8 @@ import functools
 import inspect
 import sys
 import traceback
-from typing import Any, Callable, Dict, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Callable
 
 F = TypeVar('F', bound=Callable[..., Any])
 
@@ -24,9 +25,10 @@ def debug_tool(func: F) -> F:
 
     Returns:
         The decorated function
+
     """
     @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
         try:
             return func(*args, **kwargs)
         except Exception as e:
@@ -60,7 +62,7 @@ def debug_tool(func: F) -> F:
             args_str = ", ".join(f"{k}={v}" for k, v in arg_dict.items())
 
             # Create a user-friendly error message
-            user_error = f"Error in {func.__name__}: {str(e)}\nArguments: {args_str}\n\nTraceback:\n{tb_text}"
+            user_error = f"Error in {func.__name__}: {e!s}\nArguments: {args_str}\n\nTraceback:\n{tb_text}"
 
             # Create detailed error response
             error_response = {
@@ -90,6 +92,7 @@ def log_tool_call(func: F) -> F:
 
     Returns:
         The decorated function
+
     """
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:

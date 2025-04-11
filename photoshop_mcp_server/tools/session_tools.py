@@ -14,6 +14,7 @@ def register(mcp):
 
     Returns:
         list: List of registered tool names.
+
     """
     registered_tools = []
 
@@ -42,7 +43,7 @@ def register(mcp):
             # Create a detailed error message
             detailed_error = (
                 f"Error getting Photoshop session information:\n"
-                f"Error: {str(e)}\n\n"
+                f"Error: {e!s}\n\n"
                 f"Traceback:\n{tb_text}"
             )
 
@@ -82,7 +83,7 @@ def register(mcp):
             # Create a detailed error message
             detailed_error = (
                 f"Error getting active document information:\n"
-                f"Error: {str(e)}\n\n"
+                f"Error: {e!s}\n\n"
                 f"Traceback:\n{tb_text}"
             )
 
@@ -121,7 +122,7 @@ def register(mcp):
             # Create a detailed error message
             detailed_error = (
                 f"Error getting selection information:\n"
-                f"Error: {str(e)}\n\n"
+                f"Error: {e!s}\n\n"
                 f"Traceback:\n{tb_text}"
             )
 

@@ -14,6 +14,7 @@ def register(mcp):
 
     Returns:
         list: List of registered tool names.
+
     """
     registered_tools = []
 
@@ -54,8 +55,8 @@ def register(mcp):
             print(f"Error sanitizing text: {e}")
             return {
                 "success": False,
-                "error": f"Invalid text encoding: {str(e)}",
-                "detailed_error": f"The text provided contains invalid characters that cannot be properly encoded in UTF-8. Please check the text and try again with valid characters."
+                "error": f"Invalid text encoding: {e!s}",
+                "detailed_error": "The text provided contains invalid characters that cannot be properly encoded in UTF-8. Please check the text and try again with valid characters."
             }
 
         ps_app = PhotoshopApp()
@@ -69,7 +70,7 @@ def register(mcp):
             # Create text layer
             print("Adding art layer")
             text_layer = doc.artLayers.add()
-            print(f"Setting layer kind to TextLayer")
+            print("Setting layer kind to TextLayer")
             text_layer.kind = ps.LayerKind.TextLayer
 
             # Configure text
@@ -102,7 +103,7 @@ def register(mcp):
                 f"  position: ({x}, {y})\n"
                 f"  size: {size}\n"
                 f"  color: ({color_r}, {color_g}, {color_b})\n\n"
-                f"Error: {str(e)}\n\n"
+                f"Error: {e!s}\n\n"
                 f"Traceback:\n{tb_text}"
             )
 
@@ -151,8 +152,8 @@ def register(mcp):
             print(f"Error sanitizing layer name: {e}")
             return {
                 "success": False,
-                "error": f"Invalid name encoding: {str(e)}",
-                "detailed_error": f"The layer name provided contains invalid characters that cannot be properly encoded in UTF-8. Please check the name and try again with valid characters."
+                "error": f"Invalid name encoding: {e!s}",
+                "detailed_error": "The layer name provided contains invalid characters that cannot be properly encoded in UTF-8. Please check the name and try again with valid characters."
             }
 
         ps_app = PhotoshopApp()
@@ -214,7 +215,7 @@ def register(mcp):
                 f"Error creating solid color layer with parameters:\n"
                 f"  name: {name}\n"
                 f"  color: ({color_r}, {color_g}, {color_b})\n\n"
-                f"Error: {str(e)}\n\n"
+                f"Error: {e!s}\n\n"
                 f"Traceback:\n{tb_text}"
             )
 

@@ -132,7 +132,7 @@ class PhotoshopApp:
                 return doc
         except Exception as e:
             # Log the exception for debugging
-            print(f"Error creating document: {str(e)}")
+            print(f"Error creating document: {e!s}")
             import traceback
             traceback.print_exc()
 
@@ -145,7 +145,7 @@ class PhotoshopApp:
                 print(f"Document created via fallback: {doc.name if hasattr(doc, 'name') else 'Unknown'}")
                 return doc
             except Exception as e2:
-                print(f"Fallback also failed: {str(e2)}")
+                print(f"Fallback also failed: {e2!s}")
                 traceback.print_exc()
 
                 # Last resort: try with just the basic parameters
@@ -155,14 +155,14 @@ class PhotoshopApp:
                     print(f"Document created via last resort: {doc.name if hasattr(doc, 'name') else 'Unknown'}")
                     return doc
                 except Exception as e3:
-                    print(f"Last resort also failed: {str(e3)}")
+                    print(f"Last resort also failed: {e3!s}")
                     traceback.print_exc()
                     # Create a detailed error message with all attempts
                     detailed_error = (
                         f"Failed to create document with mode '{mode}'\n\n"
-                        f"First attempt error: {str(e)}\n"
-                        f"Fallback attempt error: {str(e2)}\n"
-                        f"Last resort error: {str(e3)}"
+                        f"First attempt error: {e!s}\n"
+                        f"Fallback attempt error: {e2!s}\n"
+                        f"Last resort error: {e3!s}"
                     )
                     # Raise a more informative exception
                     raise RuntimeError(detailed_error) from e3
