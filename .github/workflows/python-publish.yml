@@ -117,15 +117,14 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  # Release to PyPI
-  release-to-pypi:
-    name: Release
+  # Prepare Release
+  prepare-release:
+    name: Prepare Release
     needs: [build-and-test]
     if: github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: windows-latest
     permissions:
       contents: write
-      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -164,6 +163,32 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Upload artifacts for PyPI publishing
+      - name: Upload artifacts for PyPI
+        uses: actions/upload-artifact@v4
+        with:
+          name: pypi-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  # Publish to PyPI
+  publish-to-pypi:
+    name: Publish to PyPI
+    needs: [prepare-release]
+    if: github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Download artifacts for PyPI
+        uses: actions/download-artifact@v4
+        with:
+          name: pypi-dist
+          path: dist
+      # List all artifacts
+      - name: List all artifacts
+        run: find dist -type f | sort
       # Publish to PyPI
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
