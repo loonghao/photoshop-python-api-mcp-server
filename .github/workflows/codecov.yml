@@ -1,8 +1,10 @@
 name: Codecov
+
 on: [push, pull_request]
+
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest  # Use Windows since Photoshop is Windows-only
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,11 +22,12 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
-          python -m pip install -r requirements-dev.txt
-          poetry --version
+          python -m pip install --upgrade pip
+          python -m pip install uv
+          uvx poetry install
       - name: Run tests and collect coverage
         run: |
-          nox -s pytest
+          uvx nox -s pytest
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:

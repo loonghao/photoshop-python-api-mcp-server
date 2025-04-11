@@ -1,66 +1,178 @@
-name: Upload Python Package
+name: Build and Release
+
+permissions:
+  contents: write  # For creating releases
+  pull-requests: write  # For commenting on PRs
+  id-token: write  # For PyPI trusted publishing
 
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE*'
+      - '.readthedocs.yml'
+      - 'CITATION.cff'
+      - 'CODE_OF_CONDUCT.md'
+      - 'CONTRIBUTING.md'
+      - '**.rst'
+      - '.hound.yml'
+      - '.gitignore'
+      - '.gitmodules'
+      - '.coveragerc'
+      - 'codecov.yml'
+      - '.flake8'
+      - '.pylintrc'
+      - 'renovate.json'
+  release:
+    types: [published]
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE*'
+      - '.readthedocs.yml'
+      - 'CITATION.cff'
+      - 'CODE_OF_CONDUCT.md'
+      - 'CONTRIBUTING.md'
+      - '**.rst'
+      - '.hound.yml'
+      - '.gitignore'
+      - '.gitmodules'
+      - '.coveragerc'
+      - 'codecov.yml'
+      - '.flake8'
+      - '.pylintrc'
+      - 'renovate.json'
+  workflow_dispatch:
+    inputs:
+      fast-mode:
+        description: 'Skip building wheels and only run tests'
+        required: false
+        default: false
+        type: boolean
+      python-version:
+        description: 'Python version to use for testing'
+        required: false
+        default: '3.10'
+        type: string
+      os:
+        description: 'OS to run tests on'
+        required: false
+        default: 'ubuntu-latest'
+        type: choice
+        options:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
 
 jobs:
-  deploy:
+  # Build and test the package
+  build-and-test:
+    name: Build and test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.8', '3.10', '3.11']
+        exclude:
+          - os: macos-latest
+            python-version: '3.8'
+          - os: ubuntu-latest
+            python-version: '3.8'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            **/pyproject.toml
+            **/requirements*.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install uv
+          uvx poetry lock
+          uvx poetry install
+      - name: Lint
+        run: |
+          uvx nox -s lint
+      - name: Test
+        run: |
+          uvx nox -s pytest
+      - name: Build package
+        run: |
+          uvx poetry build
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}-${{ matrix.python-version }}
+          path: dist/
+          if-no-files-found: error
+
+  # Release to PyPI
+  release-to-pypi:
+    name: Release
+    needs: [build-and-test]
+    if: github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: ubuntu-latest
     permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
-      id-token: write
       contents: write
-
+      id-token: write
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      with:
-        token: "${{ secrets.GITHUB_TOKEN }}"
-        fetch-depth: 0
-        ref: main
-    - uses: olegtarasov/get-tag@v2.1.4
-      id: get_tag_name
-      with:
-        tagRegex: "v(?<version>.*)"
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-    - name: Install dependencies
-      run: |
-        python -m pip install -r requirements-dev.txt
-        poetry --version
-        poetry build
-    # Note that we don't need credentials.
-    # We rely on https://docs.pypi.org/trusted-publishers/.
-    - name: Upload to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        packages-dir: dist
-    - name: Generate changelog
-      id: changelog
-      uses: jaywcjlove/changelog-generator@main
-      with:
-        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        filter-author: (|dependabot|renovate\\[bot\\]|dependabot\\[bot\\]|Renovate Bot)
-        filter: '[R|r]elease[d]\s+[v|V]\d(\.\d+){0,2}'
-        template: |
-          ## Bugs
-          {{fix}}
-          ## Feature
-          {{feat}}
-          ## Improve
-          {{refactor,perf,clean}}
-          ## Misc
-          {{chore,style,ci||🔶 Nothing change}}
-          ## Unknown
-          {{__unknown__}}
-    - uses: ncipollo/release-action@v1
-      with:
-        artifacts: "dist/*"
-        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        body: |
-          Comparing Changes: ${{ steps.changelog.outputs.compareurl }}
-
-          ${{ steps.changelog.outputs.changelog }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      # List all artifacts
+      - name: List all artifacts
+        run: find dist -type f | sort
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "# Photoshop MCP Server $VERSION" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo "MCP Server for Photoshop integration using photoshop-python-api." >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo "## What's Changed" >> $GITHUB_ENV
+          echo "* Improved MCP host integration" >> $GITHUB_ENV
+          echo "* Added support for Claude Desktop and Claude Windsurf" >> $GITHUB_ENV
+          echo "* Enhanced error handling" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+        shell: bash
+      # Update release notes
+      - name: Update Release Notes
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ env.RELEASE_NOTES }}
+          files: dist/*
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Publish to PyPI
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          skip-existing: true
+          verbose: true
