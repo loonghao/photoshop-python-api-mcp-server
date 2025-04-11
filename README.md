@@ -26,60 +26,11 @@ uv install photoshop-mcp-server
 
 This server is designed to work with various MCP hosts. The `PS_VERSION` environment variable is used to specify which Photoshop version to connect to (e.g., "2024", "2023", "2022", etc.).
 
-### Claude Desktop
+The recommended way to configure the server is using `uvx` as the command, which is the official standard format.
 
-To use with Claude Desktop, add the following to your Claude Desktop configuration:
+### Standard Configuration (Recommended)
 
-```json
-{
-  "mcpServers": {
-    "photoshop": {
-      "command": "ps-mcp",
-      "env": {
-        "PS_VERSION": "2024"
-      }
-    }
-  }
-}
-```
-
-### Windsurf
-
-To use with Windsurf, add the server to your Windsurf configuration:
-
-```json
-{
-  "mcpServers": {
-    "photoshop": {
-      "command": "ps-mcp",
-      "env": {
-        "PS_VERSION": "2024"
-      }
-    }
-  }
-}
-```
-
-### Cline
-
-To use with Cline, add the server to your Cline configuration:
-
-```json
-{
-  "mcpServers": {
-    "photoshop": {
-      "command": "ps-mcp",
-      "env": {
-        "PS_VERSION": "2024"
-      }
-    }
-  }
-}
-```
-
-### Using with uvx (Alternative)
-
-If you installed the package with uv and want to use uvx to run the server:
+Add the following to your MCP host configuration (works with Claude Desktop, Windsurf, Cline, and other MCP hosts):
 
 ```json
 {
@@ -94,6 +45,12 @@ If you installed the package with uv and want to use uvx to run the server:
   }
 }
 ```
+
+### Configuration Options
+
+- **PS_VERSION**: Specify the Photoshop version to connect to (e.g., "2024", "2023", "2022", etc.)
+- **command**: Use `uvx` for the standard approach
+- **args**: Use `["ps-mcp"]` to run the Photoshop MCP server
 
 ## Key Features
 
