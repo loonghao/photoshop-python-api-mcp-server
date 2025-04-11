@@ -29,7 +29,7 @@ pytest-cov = "^6.0.0"
 pytest-mock = "^3.11.1"
 
 [tool.poetry.scripts]
-ps-mcp = "photoshop_mcp_server.server:main"
+photoshop-mcp-server = "photoshop_mcp_server.server:main"
 
 [tool.poetry.urls]
 Homepage = "https://github.com/loonghao/photoshop-python-api-mcp-server"
