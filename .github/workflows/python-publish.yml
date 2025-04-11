@@ -65,14 +65,12 @@ on:
         default: '3.10'
         type: string
       os:
-        description: 'OS to run tests on'
+        description: 'OS to run tests on (only Windows is supported)'
         required: false
-        default: 'ubuntu-latest'
+        default: 'windows-latest'
         type: choice
         options:
-          - ubuntu-latest
           - windows-latest
-          - macos-latest
 
 jobs:
   # Build and test the package
@@ -82,13 +80,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [windows-latest]
         python-version: ['3.8', '3.10', '3.11']
-        exclude:
-          - os: macos-latest
-            python-version: '3.8'
-          - os: ubuntu-latest
-            python-version: '3.8'
+        # No exclusions needed as we only support Windows
     steps:
       - uses: actions/checkout@v4
         with:
@@ -128,7 +122,7 @@ jobs:
     name: Release
     needs: [build-and-test]
     if: github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: write
       id-token: write
@@ -143,23 +137,24 @@ jobs:
           merge-multiple: true
       # List all artifacts
       - name: List all artifacts
-        run: find dist -type f | sort
+        run: Get-ChildItem -Path dist -Recurse -File | Sort-Object FullName
+        shell: pwsh
       - name: Generate Release Notes
         id: release_notes
         run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          echo "# Photoshop MCP Server $VERSION" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "MCP Server for Photoshop integration using photoshop-python-api." >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "## What's Changed" >> $GITHUB_ENV
-          echo "* Improved MCP host integration" >> $GITHUB_ENV
-          echo "* Added support for Claude Desktop and Claude Windsurf" >> $GITHUB_ENV
-          echo "* Enhanced error handling" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-        shell: bash
+          $VERSION = $env:GITHUB_REF -replace 'refs/tags/', ''
+          "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_NOTES<<EOF" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "# Photoshop MCP Server $VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "MCP Server for Photoshop integration using photoshop-python-api." | Out-File -FilePath $env:GITHUB_ENV -Append
+          "" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "## What's Changed" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "* Improved MCP host integration" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "* Added support for Claude Desktop and Claude Windsurf" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "* Enhanced error handling" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "EOF" | Out-File -FilePath $env:GITHUB_ENV -Append
+        shell: pwsh
       # Update release notes
       - name: Update Release Notes
         uses: softprops/action-gh-release@v2
