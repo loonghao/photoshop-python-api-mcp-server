@@ -33,7 +33,9 @@ def register(mcp):
             dict: Result of the operation.
 
         """
-        print(f"Creating document: width={width}, height={height}, name={name}, mode={mode}")
+        print(
+            f"Creating document: width={width}, height={height}, name={name}, mode={mode}"
+        )
         ps_app = PhotoshopApp()
         try:
             # Validate mode parameter
@@ -42,15 +44,27 @@ def register(mcp):
                 return {
                     "success": False,
                     "error": f"Invalid mode: {mode}. Valid modes are: {', '.join(valid_modes)}",
-                    "detailed_error": f"Invalid color mode: {mode}\n\nValid modes are: {', '.join(valid_modes)}\n\nThe mode parameter specifies the color mode of the new document. It must be one of the valid modes listed above."
+                    "detailed_error": (
+                        f"Invalid color mode: {mode}\n\n"
+                        f"Valid modes are: {', '.join(valid_modes)}\n\n"
+                        f"The mode parameter specifies the color mode of the new document. "
+                        f"It must be one of the valid modes listed above."
+                    ),
                 }
 
             # Create document
-            print(f"Calling ps_app.create_document with width={width}, height={height}, name={name}, mode={mode}")
-            doc = ps_app.create_document(width=width, height=height, name=name, mode=mode)
+            print(
+                f"Calling ps_app.create_document with width={width}, height={height}, name={name}, mode={mode}"
+            )
+            doc = ps_app.create_document(
+                width=width, height=height, name=name, mode=mode
+            )
 
             if not doc:
-                return {"success": False, "error": "Failed to create document - returned None"}
+                return {
+                    "success": False,
+                    "error": "Failed to create document - returned None",
+                }
 
             # Get document properties safely
             try:
@@ -95,6 +109,7 @@ def register(mcp):
             except Exception as prop_error:
                 print(f"Error getting document properties: {prop_error}")
                 import traceback
+
                 traceback.print_exc()
                 # Document was created but we couldn't get properties
                 return {
@@ -102,11 +117,12 @@ def register(mcp):
                     "document_name": name,
                     "width": width,
                     "height": height,
-                    "warning": f"Created document but couldn't get properties: {prop_error!s}"
+                    "warning": f"Created document but couldn't get properties: {prop_error!s}",
                 }
         except Exception as e:
             print(f"Error creating document: {e}")
             import traceback
+
             tb_text = traceback.format_exc()
             traceback.print_exc()
 
@@ -129,8 +145,8 @@ def register(mcp):
                     "width": width,
                     "height": height,
                     "name": name,
-                    "mode": mode
-                }
+                    "mode": mode,
+                },
             }
 
     # Register the create_document function with a specific name

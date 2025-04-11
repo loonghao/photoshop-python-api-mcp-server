@@ -15,5 +15,6 @@ def _assemble_env_paths(*paths):
 
     Returns:
         str: Assembled paths separated by a semicolon.
+
     """
     return ";".join(paths)

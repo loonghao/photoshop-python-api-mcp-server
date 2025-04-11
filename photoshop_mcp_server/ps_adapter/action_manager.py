@@ -7,6 +7,7 @@ which is a lower-level API that is more stable than the JavaScript API.
 from typing import Any
 
 import photoshop.api as ps
+
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
 
 
@@ -59,7 +60,7 @@ class ActionManager:
                 return {
                     "success": True,
                     "error": "No active document",
-                    "no_document": True
+                    "no_document": True,
                 }
 
             # Create a reference to the current document
@@ -67,7 +68,7 @@ class ActionManager:
             ref.putEnumerated(
                 cls.char_id_to_type_id("Dcmn"),  # Document
                 cls.char_id_to_type_id("Ordn"),  # Ordinal
-                cls.char_id_to_type_id("Trgt")   # Target/Current
+                cls.char_id_to_type_id("Trgt"),  # Target/Current
             )
 
             # Get the document descriptor
@@ -86,7 +87,7 @@ class ActionManager:
                 "layers": [],
                 "layer_sets": [],
                 "channels": [],
-                "path": ""
+                "path": "",
             }
 
             # Get document properties safely
@@ -98,19 +99,25 @@ class ActionManager:
 
             try:
                 if desc.hasKey(cls.char_id_to_type_id("Wdth")):
-                    result["width"] = desc.getUnitDoubleValue(cls.char_id_to_type_id("Wdth"))
+                    result["width"] = desc.getUnitDoubleValue(
+                        cls.char_id_to_type_id("Wdth")
+                    )
             except Exception as e:
                 print(f"Error getting document width: {e}")
 
             try:
                 if desc.hasKey(cls.char_id_to_type_id("Hght")):
-                    result["height"] = desc.getUnitDoubleValue(cls.char_id_to_type_id("Hght"))
+                    result["height"] = desc.getUnitDoubleValue(
+                        cls.char_id_to_type_id("Hght")
+                    )
             except Exception as e:
                 print(f"Error getting document height: {e}")
 
             try:
                 if desc.hasKey(cls.char_id_to_type_id("Rslt")):
-                    result["resolution"] = desc.getUnitDoubleValue(cls.char_id_to_type_id("Rslt"))
+                    result["resolution"] = desc.getUnitDoubleValue(
+                        cls.char_id_to_type_id("Rslt")
+                    )
             except Exception as e:
                 print(f"Error getting document resolution: {e}")
 
@@ -130,7 +137,9 @@ class ActionManager:
 
             try:
                 if desc.hasKey(cls.char_id_to_type_id("Dpth")):
-                    result["bit_depth"] = desc.getInteger(cls.char_id_to_type_id("Dpth"))
+                    result["bit_depth"] = desc.getInteger(
+                        cls.char_id_to_type_id("Dpth")
+                    )
             except Exception as e:
                 print(f"Error getting document bit depth: {e}")
 
@@ -148,14 +157,11 @@ class ActionManager:
 
         except Exception as e:
             import traceback
+
             tb_text = traceback.format_exc()
             print(f"Error in get_active_document_info: {e}")
             print(tb_text)
-            return {
-                "success": False,
-                "error": str(e),
-                "detailed_error": tb_text
-            }
+            return {"success": False, "error": str(e), "detailed_error": tb_text}
 
     @classmethod
     def get_selection_info(cls) -> dict[str, Any]:
@@ -175,19 +181,19 @@ class ActionManager:
                 return {
                     "success": True,
                     "has_selection": False,
-                    "error": "No active document"
+                    "error": "No active document",
                 }
 
             # Create a reference to check if there's a selection
             ref = ps.ActionReference()
             ref.putProperty(
                 cls.char_id_to_type_id("Prpr"),  # Property
-                cls.char_id_to_type_id("PixL")   # Pixel Selection
+                cls.char_id_to_type_id("PixL"),  # Pixel Selection
             )
             ref.putEnumerated(
                 cls.char_id_to_type_id("Dcmn"),  # Document
                 cls.char_id_to_type_id("Ordn"),  # Ordinal
-                cls.char_id_to_type_id("Trgt")   # Target/Current
+                cls.char_id_to_type_id("Trgt"),  # Target/Current
             )
 
             # Try to get the selection
@@ -197,22 +203,19 @@ class ActionManager:
                 # We don't need to store the result, just check if it throws an exception
             except Exception:
                 # No selection
-                return {
-                    "success": True,
-                    "has_selection": False
-                }
+                return {"success": True, "has_selection": False}
 
             # If we get here, there is a selection
             # Get the bounds of the selection
             bounds_ref = ps.ActionReference()
             bounds_ref.putProperty(
                 cls.char_id_to_type_id("Prpr"),  # Property
-                cls.str_id_to_char_id("bounds")  # Bounds
+                cls.str_id_to_char_id("bounds"),  # Bounds
             )
             bounds_ref.putEnumerated(
                 cls.char_id_to_type_id("csel"),  # Current Selection
                 cls.char_id_to_type_id("Ordn"),  # Ordinal
-                cls.char_id_to_type_id("Trgt")   # Target/Current
+                cls.char_id_to_type_id("Trgt"),  # Target/Current
             )
 
             try:
@@ -237,28 +240,26 @@ class ActionManager:
                             "left": left,
                             "top": top,
                             "right": right,
-                            "bottom": bottom
+                            "bottom": bottom,
                         },
                         "width": width,
                         "height": height,
-                        "area": width * height
+                        "area": width * height,
                     }
             except Exception as e:
                 print(f"Error getting selection bounds: {e}")
                 return {
                     "success": True,
                     "has_selection": True,
-                    "error": f"Selection exists but couldn't get bounds: {e!s}"
+                    "error": f"Selection exists but couldn't get bounds: {e!s}",
                 }
 
             # Fallback if we couldn't get bounds
-            return {
-                "success": True,
-                "has_selection": True
-            }
+            return {"success": True, "has_selection": True}
 
         except Exception as e:
             import traceback
+
             tb_text = traceback.format_exc()
             print(f"Error in get_selection_info: {e}")
             print(tb_text)
@@ -266,7 +267,7 @@ class ActionManager:
                 "success": False,
                 "has_selection": False,
                 "error": str(e),
-                "detailed_error": tb_text
+                "detailed_error": tb_text,
             }
 
     @classmethod
@@ -290,12 +291,14 @@ class ActionManager:
                 "has_active_document": False,
                 "documents": [],
                 "active_document": None,
-                "preferences": {}
+                "preferences": {},
             }
 
             # Get document info
             doc_info = cls.get_active_document_info()
-            if doc_info.get("success", False) and not doc_info.get("no_document", False):
+            if doc_info.get("success", False) and not doc_info.get(
+                "no_document", False
+            ):
                 info["has_active_document"] = True
                 info["active_document"] = doc_info
 
@@ -307,7 +310,7 @@ class ActionManager:
                         doc_ref = ps.ActionReference()
                         doc_ref.putIndex(
                             cls.char_id_to_type_id("Dcmn"),  # Document
-                            i + 1  # 1-based index
+                            i + 1,  # 1-based index
                         )
 
                         # Get the document descriptor
@@ -318,21 +321,29 @@ class ActionManager:
                             "name": "",
                             "width": 0,
                             "height": 0,
-                            "is_active": False
+                            "is_active": False,
                         }
 
                         # Get document name
                         if doc_desc.hasKey(cls.str_id_to_char_id("title")):
-                            doc_info["name"] = doc_desc.getString(cls.str_id_to_char_id("title"))
+                            doc_info["name"] = doc_desc.getString(
+                                cls.str_id_to_char_id("title")
+                            )
 
                         # Check if this is the active document
-                        doc_info["is_active"] = (doc_info["name"] == info["active_document"]["name"])
+                        doc_info["is_active"] = (
+                            doc_info["name"] == info["active_document"]["name"]
+                        )
 
                         # Get dimensions
                         if doc_desc.hasKey(cls.char_id_to_type_id("Wdth")):
-                            doc_info["width"] = doc_desc.getUnitDoubleValue(cls.char_id_to_type_id("Wdth"))
+                            doc_info["width"] = doc_desc.getUnitDoubleValue(
+                                cls.char_id_to_type_id("Wdth")
+                            )
                         if doc_desc.hasKey(cls.char_id_to_type_id("Hght")):
-                            doc_info["height"] = doc_desc.getUnitDoubleValue(cls.char_id_to_type_id("Hght"))
+                            doc_info["height"] = doc_desc.getUnitDoubleValue(
+                                cls.char_id_to_type_id("Hght")
+                            )
 
                         docs.append(doc_info)
                     except Exception as e:
@@ -346,12 +357,12 @@ class ActionManager:
                 app_ref = ps.ActionReference()
                 app_ref.putProperty(
                     cls.char_id_to_type_id("Prpr"),  # Property
-                    cls.str_id_to_char_id("generalPreferences")  # General Preferences
+                    cls.str_id_to_char_id("generalPreferences"),  # General Preferences
                 )
                 app_ref.putEnumerated(
                     cls.char_id_to_type_id("capp"),  # Current Application
                     cls.char_id_to_type_id("Ordn"),  # Ordinal
-                    cls.char_id_to_type_id("Trgt")   # Target/Current
+                    cls.char_id_to_type_id("Trgt"),  # Target/Current
                 )
 
                 # Get the application descriptor
@@ -362,7 +373,9 @@ class ActionManager:
 
                 # Get ruler units
                 if app_desc.hasKey(cls.str_id_to_char_id("rulerUnits")):
-                    ruler_id = app_desc.getEnumerationValue(cls.str_id_to_char_id("rulerUnits"))
+                    ruler_id = app_desc.getEnumerationValue(
+                        cls.str_id_to_char_id("rulerUnits")
+                    )
                     ruler_map = {
                         cls.char_id_to_type_id("Pxl"): "Pixels",
                         cls.char_id_to_type_id("Inch"): "Inches",
@@ -370,17 +383,21 @@ class ActionManager:
                         cls.char_id_to_type_id("Millimeter"): "Millimeters",
                         cls.char_id_to_type_id("Pnt"): "Points",
                         cls.char_id_to_type_id("Pica"): "Picas",
-                        cls.char_id_to_type_id("Percent"): "Percent"
+                        cls.char_id_to_type_id("Percent"): "Percent",
                     }
-                    prefs["ruler_units"] = ruler_map.get(ruler_id, f"Unknown ({ruler_id})")
+                    prefs["ruler_units"] = ruler_map.get(
+                        ruler_id, f"Unknown ({ruler_id})"
+                    )
 
                 # Get type units
                 if app_desc.hasKey(cls.str_id_to_char_id("typeUnits")):
-                    type_id = app_desc.getEnumerationValue(cls.str_id_to_char_id("typeUnits"))
+                    type_id = app_desc.getEnumerationValue(
+                        cls.str_id_to_char_id("typeUnits")
+                    )
                     type_map = {
                         cls.char_id_to_type_id("Pxl"): "Pixels",
                         cls.char_id_to_type_id("Pnt"): "Points",
-                        cls.char_id_to_type_id("Millimeter"): "Millimeters"
+                        cls.char_id_to_type_id("Millimeter"): "Millimeters",
                     }
                     prefs["type_units"] = type_map.get(type_id, f"Unknown ({type_id})")
 
@@ -392,6 +409,7 @@ class ActionManager:
 
         except Exception as e:
             import traceback
+
             tb_text = traceback.format_exc()
             print(f"Error in get_session_info: {e}")
             print(tb_text)
@@ -399,5 +417,5 @@ class ActionManager:
                 "success": False,
                 "is_running": True,
                 "error": str(e),
-                "detailed_error": tb_text
+                "detailed_error": tb_text,
             }

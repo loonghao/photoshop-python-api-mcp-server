@@ -70,7 +70,11 @@ The server provides various tools for controlling Photoshop:
 
 ## Basic Usage Example
 
-Once configured in your MCP host, you can use the Photoshop MCP server in your AI assistant conversations. For example:
+Once configured in your MCP host, you can use the Photoshop MCP server in your AI assistant conversations.
+
+![Photoshop MCP Server Demo](assets/ps-mcp.gif)
+
+Example conversation:
 
 ```text
 User: Can you create a new Photoshop document and add a text layer with "Hello World"?

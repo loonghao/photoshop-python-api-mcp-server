@@ -4,14 +4,14 @@ import functools
 import inspect
 import sys
 import traceback
-from typing import Any, TypeVar
 from collections.abc import Callable
+from typing import Any, TypeVar
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def debug_tool(func: F) -> F:
-    """Decorator to add detailed error information to MCP tool functions.
+    """Add detailed error information to MCP tool functions.
 
     This decorator wraps MCP tool functions to catch exceptions and provide
     detailed error information in the response, including:
@@ -27,6 +27,7 @@ def debug_tool(func: F) -> F:
         The decorated function
 
     """
+
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
         try:
@@ -48,7 +49,7 @@ def debug_tool(func: F) -> F:
 
             # Create a dictionary of argument names and values
             # Skip 'self' if it's a method
-            start_idx = 1 if arg_names and arg_names[0] == 'self' else 0
+            start_idx = 1 if arg_names and arg_names[0] == "self" else 0
             arg_dict = {}
             for i, arg_name in enumerate(arg_names[start_idx:], start_idx):
                 if i < len(args):
@@ -73,7 +74,7 @@ def debug_tool(func: F) -> F:
                 "traceback": tb_text,
                 "function": func.__name__,
                 "arguments": arg_dict,
-                "module": func.__module__
+                "module": func.__module__,
             }
 
             return error_response
@@ -82,7 +83,7 @@ def debug_tool(func: F) -> F:
 
 
 def log_tool_call(func: F) -> F:
-    """Decorator to log MCP tool function calls.
+    """Log MCP tool function calls.
 
     This decorator logs the function name and arguments when called,
     and the result when the function returns.
@@ -94,6 +95,7 @@ def log_tool_call(func: F) -> F:
         The decorated function
 
     """
+
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         # Get the function arguments
@@ -102,7 +104,7 @@ def log_tool_call(func: F) -> F:
 
         # Create a dictionary of argument names and values
         # Skip 'self' if it's a method
-        start_idx = 1 if arg_names and arg_names[0] == 'self' else 0
+        start_idx = 1 if arg_names and arg_names[0] == "self" else 0
         arg_dict = {}
         for i, arg_name in enumerate(arg_names[start_idx:], start_idx):
             if i < len(args):
@@ -113,7 +115,9 @@ def log_tool_call(func: F) -> F:
             arg_dict[key] = repr(value)
 
         # Log the function call
-        print(f"TOOL CALL: {func.__name__}({', '.join(f'{k}={v}' for k, v in arg_dict.items())})")
+        print(
+            f"TOOL CALL: {func.__name__}({', '.join(f'{k}={v}' for k, v in arg_dict.items())})"
+        )
 
         # Call the function
         result = func(*args, **kwargs)

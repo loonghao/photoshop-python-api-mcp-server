@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Session Info example for Photoshop MCP Server.
+"""Session Info example for Photoshop MCP Server.
 
 This example demonstrates how to use the MCP client to:
 1. Get information about the current Photoshop session

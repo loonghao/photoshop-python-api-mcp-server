@@ -30,28 +30,27 @@ def register(mcp):
 
             # Use Action Manager to get session info
             session_info = ActionManager.get_session_info()
-            print(f"Session info retrieved successfully: {session_info.get('success', False)}")
+            print(
+                f"Session info retrieved successfully: {session_info.get('success', False)}"
+            )
 
             return session_info
 
         except Exception as e:
             print(f"Error getting Photoshop session info: {e}")
             import traceback
+
             tb_text = traceback.format_exc()
             traceback.print_exc()
 
             # Create a detailed error message
-            detailed_error = (
-                f"Error getting Photoshop session information:\n"
-                f"Error: {e!s}\n\n"
-                f"Traceback:\n{tb_text}"
-            )
+            detailed_error = f"Error getting Photoshop session information:\nError: {e!s}\n\nTraceback:\n{tb_text}"
 
             return {
                 "success": False,
                 "is_running": False,
                 "error": str(e),
-                "detailed_error": detailed_error
+                "detailed_error": detailed_error,
             }
 
     # Register the get_session_info function with a specific name
@@ -70,28 +69,23 @@ def register(mcp):
 
             # Use Action Manager to get document info
             doc_info = ActionManager.get_active_document_info()
-            print(f"Document info retrieved successfully: {doc_info.get('success', False)}")
+            print(
+                f"Document info retrieved successfully: {doc_info.get('success', False)}"
+            )
 
             return doc_info
 
         except Exception as e:
             print(f"Error getting active document info: {e}")
             import traceback
+
             tb_text = traceback.format_exc()
             traceback.print_exc()
 
             # Create a detailed error message
-            detailed_error = (
-                f"Error getting active document information:\n"
-                f"Error: {e!s}\n\n"
-                f"Traceback:\n{tb_text}"
-            )
+            detailed_error = f"Error getting active document information:\nError: {e!s}\n\nTraceback:\n{tb_text}"
 
-            return {
-                "success": False,
-                "error": str(e),
-                "detailed_error": detailed_error
-            }
+            return {"success": False, "error": str(e), "detailed_error": detailed_error}
 
     # Register the get_active_document_info function with a specific name
     tool_name = register_tool(mcp, get_active_document_info, "get_active_document_info")
@@ -109,28 +103,27 @@ def register(mcp):
 
             # Use Action Manager to get selection info
             selection_info = ActionManager.get_selection_info()
-            print(f"Selection info retrieved successfully: {selection_info.get('success', False)}")
+            print(
+                f"Selection info retrieved successfully: {selection_info.get('success', False)}"
+            )
 
             return selection_info
 
         except Exception as e:
             print(f"Error getting selection info: {e}")
             import traceback
+
             tb_text = traceback.format_exc()
             traceback.print_exc()
 
             # Create a detailed error message
-            detailed_error = (
-                f"Error getting selection information:\n"
-                f"Error: {e!s}\n\n"
-                f"Traceback:\n{tb_text}"
-            )
+            detailed_error = f"Error getting selection information:\nError: {e!s}\n\nTraceback:\n{tb_text}"
 
             return {
                 "success": False,
                 "has_selection": False,
                 "error": str(e),
-                "detailed_error": detailed_error
+                "detailed_error": detailed_error,
             }
 
     # Register the get_selection_info function with a specific name

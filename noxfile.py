@@ -1,6 +1,4 @@
 # Import built-in modules
-import os
-import sys
 import platform
 
 # Import third-party modules
@@ -8,6 +6,7 @@ import nox
 
 # Define package name
 PACKAGE_NAME = "photoshop_mcp_server"
+
 
 @nox.session
 def lint(session):

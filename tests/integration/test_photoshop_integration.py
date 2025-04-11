@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Integration tests for Photoshop integration.
 
 These tests require Photoshop to be installed and will be skipped if it's not available.
@@ -11,8 +10,7 @@ import platform
 
 # Skip all tests if not on Windows
 pytestmark = pytest.mark.skipif(
-    platform.system() != "Windows",
-    reason="Photoshop integration tests only run on Windows"
+    platform.system() != "Windows", reason="Photoshop integration tests only run on Windows"
 )
 
 
@@ -20,6 +18,7 @@ def is_photoshop_available():
     """Check if Photoshop is available."""
     try:
         import photoshop.api as ps
+
         ps.Application()
         return True
     except Exception:
@@ -27,10 +26,7 @@ def is_photoshop_available():
 
 
 # Skip tests if Photoshop is not available
-pytestmark = pytest.mark.skipif(
-    not is_photoshop_available(),
-    reason="Photoshop is not available"
-)
+pytestmark = pytest.mark.skipif(not is_photoshop_available(), reason="Photoshop is not available")
 
 
 @pytest.fixture
@@ -38,6 +34,7 @@ def photoshop_app():
     """Fixture to provide a Photoshop application instance."""
     try:
         import photoshop.api as ps
+
         app = ps.Application()
         yield app
     except Exception as e:
@@ -58,6 +55,7 @@ def test_create_document(photoshop_app):
 
     try:
         import photoshop.api as ps
+
         doc = photoshop_app.documents.add(width=500, height=500, name="Test Document")
         assert doc is not None
         assert doc.name == "Test Document"

@@ -53,7 +53,9 @@ class PhotoshopApp:
         try:
             if hasattr(self, "session"):
                 return self.session.active_document
-            return self.app.activeDocument if hasattr(self.app, "activeDocument") else None
+            return (
+                self.app.activeDocument if hasattr(self.app, "activeDocument") else None
+            )
         except Exception:
             return None
 
@@ -73,7 +75,10 @@ class PhotoshopApp:
             Document: The created document.
 
         """
-        print(f"PhotoshopApp.create_document called with: width={width}, height={height}, resolution={resolution}, name={name}, mode={mode}")
+        print(
+            f"PhotoshopApp.create_document called with: width={width}, height={height}, "
+            f"resolution={resolution}, name={name}, mode={mode}"
+        )
 
         # Ensure mode is lowercase for consistency
         mode = mode.lower() if isinstance(mode, str) else "rgb"
@@ -88,7 +93,7 @@ class PhotoshopApp:
                 "grayscale": "NewGray",
                 "gray": "NewGray",
                 "bitmap": "NewBitmap",
-                "lab": "NewLab"
+                "lab": "NewLab",
             }
 
             # Get the correct enum name or default to NewRGB
@@ -107,7 +112,10 @@ class PhotoshopApp:
             if hasattr(self, "session"):
                 print("Using session-based approach")
                 # Close any existing document
-                if hasattr(self.session, "active_document") and self.session.active_document:
+                if (
+                    hasattr(self.session, "active_document")
+                    and self.session.active_document
+                ):
                     try:
                         print("Closing existing document")
                         self.session.active_document.close()
@@ -120,29 +128,35 @@ class PhotoshopApp:
                 # Set document properties
                 print("Getting active document from session")
                 doc = self.session.active_document
-                print(f"Document created via session: {doc.name if hasattr(doc, 'name') else 'Unknown'}")
+                print(
+                    f"Document created via session: {doc.name if hasattr(doc, 'name') else 'Unknown'}"
+                )
                 return doc
             else:
                 print("Using direct Application approach")
-                print(f"Adding document with params: width={width}, height={height}, resolution={resolution}, name={name}, mode_enum={mode_enum}")
-                doc = self.app.documents.add(
-                    width, height, resolution, name, mode_enum
+                print(
+                    f"Adding document with params: width={width}, height={height}, "
+                    f"resolution={resolution}, name={name}, mode_enum={mode_enum}"
                 )
-                print(f"Document created via direct app: {doc.name if hasattr(doc, 'name') else 'Unknown'}")
+                doc = self.app.documents.add(width, height, resolution, name, mode_enum)
+                print(
+                    f"Document created via direct app: {doc.name if hasattr(doc, 'name') else 'Unknown'}"
+                )
                 return doc
         except Exception as e:
             # Log the exception for debugging
             print(f"Error creating document: {e!s}")
             import traceback
+
             traceback.print_exc()
 
             # Fallback to direct Application if Session fails
             try:
                 print("Trying fallback to direct Application")
-                doc = self.app.documents.add(
-                    width, height, resolution, name, mode_enum
+                doc = self.app.documents.add(width, height, resolution, name, mode_enum)
+                print(
+                    f"Document created via fallback: {doc.name if hasattr(doc, 'name') else 'Unknown'}"
                 )
-                print(f"Document created via fallback: {doc.name if hasattr(doc, 'name') else 'Unknown'}")
                 return doc
             except Exception as e2:
                 print(f"Fallback also failed: {e2!s}")
@@ -152,7 +166,9 @@ class PhotoshopApp:
                 try:
                     print("Trying last resort with basic parameters")
                     doc = self.app.documents.add(width, height)
-                    print(f"Document created via last resort: {doc.name if hasattr(doc, 'name') else 'Unknown'}")
+                    print(
+                        f"Document created via last resort: {doc.name if hasattr(doc, 'name') else 'Unknown'}"
+                    )
                     return doc
                 except Exception as e3:
                     print(f"Last resort also failed: {e3!s}")
@@ -180,13 +196,18 @@ class PhotoshopApp:
         try:
             if hasattr(self, "session"):
                 # Close any existing document
-                if hasattr(self.session, "active_document") and self.session.active_document:
+                if (
+                    hasattr(self.session, "active_document")
+                    and self.session.active_document
+                ):
                     try:
                         self.session.active_document.close()
                     except Exception:
                         pass
                 # Create a new session with open action
-                self.session = Session(file_path=file_path, action="open", auto_close=False)
+                self.session = Session(
+                    file_path=file_path, action="open", auto_close=False
+                )
                 # Return the active document
                 return self.session.active_document
             else:
@@ -206,11 +227,11 @@ class PhotoshopApp:
 
         """
         # Ensure script returns a valid JSON string
-        if not script.strip().endswith(';'):
-            script = script.rstrip() + ';'
+        if not script.strip().endswith(";"):
+            script = script.rstrip() + ";"
 
         # Make sure script returns a value
-        if 'return ' not in script and 'JSON.stringify' not in script:
+        if "return " not in script and "JSON.stringify" not in script:
             script = script + "\n'success';"  # Add a default return value
 
         try:
@@ -312,4 +333,3 @@ class PhotoshopApp:
                     # Script already has try-catch, just return the error
                     error_msg = str(e2).replace('"', '\\"')
                     return '{"error": "' + error_msg + '", "success": false}'
-

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for the server module."""
 
 import pytest

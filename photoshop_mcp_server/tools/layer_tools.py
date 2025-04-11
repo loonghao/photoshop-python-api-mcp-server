@@ -46,17 +46,22 @@ def register(mcp):
         try:
             # Ensure text is properly encoded/decoded
             if isinstance(text, bytes):
-                text = text.decode('utf-8', errors='replace')
+                text = text.decode("utf-8", errors="replace")
             else:
                 # Force encode and decode to catch any encoding issues
-                text = text.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+                text = text.encode("utf-8", errors="replace").decode(
+                    "utf-8", errors="replace"
+                )
             print(f"Sanitized text: '{text}'")
         except Exception as e:
             print(f"Error sanitizing text: {e}")
             return {
                 "success": False,
                 "error": f"Invalid text encoding: {e!s}",
-                "detailed_error": "The text provided contains invalid characters that cannot be properly encoded in UTF-8. Please check the text and try again with valid characters."
+                "detailed_error": (
+                    "The text provided contains invalid characters that cannot be properly encoded in UTF-8. "
+                    "Please check the text and try again with valid characters."
+                ),
             }
 
         ps_app = PhotoshopApp()
@@ -65,7 +70,10 @@ def register(mcp):
             return {"success": False, "error": "No active document"}
 
         try:
-            print(f"Creating text layer: text='{text}', position=({x}, {y}), size={size}, color=({color_r}, {color_g}, {color_b})")
+            print(
+                f"Creating text layer: text='{text}', position=({x}, {y}), "
+                f"size={size}, color=({color_r}, {color_g}, {color_b})"
+            )
 
             # Create text layer
             print("Adding art layer")
@@ -93,6 +101,7 @@ def register(mcp):
         except Exception as e:
             print(f"Error creating text layer: {e}")
             import traceback
+
             tb_text = traceback.format_exc()
             traceback.print_exc()
 
@@ -116,8 +125,8 @@ def register(mcp):
                     "x": x,
                     "y": y,
                     "size": size,
-                    "color": [color_r, color_g, color_b]
-                }
+                    "color": [color_r, color_g, color_b],
+                },
             }
 
     # Register the create_text_layer function with a specific name
@@ -143,17 +152,22 @@ def register(mcp):
         try:
             # Ensure name is properly encoded/decoded
             if isinstance(name, bytes):
-                name = name.decode('utf-8', errors='replace')
+                name = name.decode("utf-8", errors="replace")
             else:
                 # Force encode and decode to catch any encoding issues
-                name = name.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+                name = name.encode("utf-8", errors="replace").decode(
+                    "utf-8", errors="replace"
+                )
             print(f"Sanitized layer name: '{name}'")
         except Exception as e:
             print(f"Error sanitizing layer name: {e}")
             return {
                 "success": False,
                 "error": f"Invalid name encoding: {e!s}",
-                "detailed_error": "The layer name provided contains invalid characters that cannot be properly encoded in UTF-8. Please check the name and try again with valid characters."
+                "detailed_error": (
+                    "The layer name provided contains invalid characters that cannot be properly encoded in UTF-8. "
+                    "Please check the name and try again with valid characters."
+                ),
             }
 
         ps_app = PhotoshopApp()
@@ -162,10 +176,17 @@ def register(mcp):
             return {"success": False, "error": "No active document"}
 
         try:
-            print(f"Creating solid color layer: name='{name}', color=({color_r}, {color_g}, {color_b})")
+            print(
+                f"Creating solid color layer: name='{name}', color=({color_r}, {color_g}, {color_b})"
+            )
 
             # Escape special characters in the name for JavaScript
-            escaped_name = name.replace('"', '\\"').replace("'", "\\'").replace('\n', '\\n').replace('\r', '\\r')
+            escaped_name = (
+                name.replace('"', '\\"')
+                .replace("'", "\\'")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+            )
 
             # Create a solid color fill layer using JavaScript
             js_script = f"""
@@ -195,11 +216,11 @@ def register(mcp):
             print(f"JavaScript execution result: {result}")
 
             # Check if JavaScript returned an error
-            if result and isinstance(result, str) and result.startswith('Error:'):
+            if result and isinstance(result, str) and result.startswith("Error:"):
                 return {
                     "success": False,
                     "error": result,
-                    "detailed_error": f"JavaScript error while creating solid color layer: {result}"
+                    "detailed_error": f"JavaScript error while creating solid color layer: {result}",
                 }
 
             print(f"Solid color layer created successfully: {name}")
@@ -207,6 +228,7 @@ def register(mcp):
         except Exception as e:
             print(f"Error creating solid color layer: {e}")
             import traceback
+
             tb_text = traceback.format_exc()
             traceback.print_exc()
 
@@ -223,10 +245,7 @@ def register(mcp):
                 "success": False,
                 "error": str(e),
                 "detailed_error": detailed_error,
-                "parameters": {
-                    "name": name,
-                    "color": [color_r, color_g, color_b]
-                }
+                "parameters": {"name": name, "color": [color_r, color_g, color_b]},
             }
 
     # Register the create_solid_color_layer function with a specific name

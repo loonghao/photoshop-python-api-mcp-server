@@ -141,7 +141,13 @@ def register_all_resources(
     return register_all(mcp_server, package_name, "resource")
 
 
-def register_tool(mcp_server: FastMCP, func: Callable, name: str | None = None, namespace: str = "photoshop", debug: bool = True) -> str:
+def register_tool(
+    mcp_server: FastMCP,
+    func: Callable,
+    name: str | None = None,
+    namespace: str = "photoshop",
+    debug: bool = True,
+) -> str:
     """Register a function as an MCP tool.
 
     Args:

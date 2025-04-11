@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Hello World example for Photoshop MCP Server.
+"""Hello World example for Photoshop MCP Server.
 
 This example demonstrates how to use the MCP client to:
 1. Create a new document
@@ -37,12 +35,7 @@ async def main():
             # Create a new document
             print("Creating a new document...")
             result = await session.call_tool(
-                "create_document",
-                arguments={
-                    "width": 800,
-                    "height": 600,
-                    "name": "Hello World Document"
-                }
+                "create_document", arguments={"width": 800, "height": 600, "name": "Hello World Document"}
             )
             print(f"Document created: {result}")
 
@@ -57,20 +50,14 @@ async def main():
                     "size": 72,
                     "color_r": 0,
                     "color_g": 255,
-                    "color_b": 0
-                }
+                    "color_b": 0,
+                },
             )
             print(f"Text layer created: {result}")
 
             # Save the document
             print(f"Saving document to {output_path}...")
-            result = await session.call_tool(
-                "save_document",
-                arguments={
-                    "file_path": output_path,
-                    "format": "jpg"
-                }
-            )
+            result = await session.call_tool("save_document", arguments={"file_path": output_path, "format": "jpg"})
             print(f"Document saved: {result}")
 
             print("Example completed successfully!")
