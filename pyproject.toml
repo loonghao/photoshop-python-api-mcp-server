@@ -25,7 +25,7 @@ tenacity = "^9.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
-pytest-cov = "^4.1.0"
+pytest-cov = "^6.0.0"
 pytest-mock = "^3.11.1"
 
 [tool.poetry.scripts]
