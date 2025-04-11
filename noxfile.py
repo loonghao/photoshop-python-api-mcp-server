@@ -6,19 +6,8 @@ import platform
 # Import third-party modules
 import nox
 
-
-ROOT = os.path.dirname(__file__)
+# Define package name
 PACKAGE_NAME = "photoshop_mcp_server"
-
-# Ensure package is importable
-if ROOT not in sys.path:
-    sys.path.append(ROOT)
-
-# Import third-party modules
-from nox_actions import codetest  # noqa: E402
-from nox_actions import lint  # noqa: E402
-from nox_actions import release  # noqa: E402
-
 
 @nox.session
 def lint(session):
@@ -29,7 +18,7 @@ def lint(session):
     session.run("ruff", "check", PACKAGE_NAME)
 
 
-@nox.session
+@nox.session(name="lint-fix")
 def lint_fix(session):
     """Fix linting issues."""
     session.install("isort", "ruff", "black", "pre-commit")
@@ -75,6 +64,3 @@ def build(session):
     """Build the package."""
     session.install("poetry")
     session.run("poetry", "build")
-
-
-nox.session(release.build_exe, name="build-exe")

@@ -20,3 +20,4 @@ target/*
 /build/
 /coverage.xml
 /.zip/
+__pycache__/

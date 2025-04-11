@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Resource registry for Photoshop MCP Server.
 
 This module provides functions for dynamically registering resources with the MCP server.
@@ -7,16 +6,16 @@ This module provides functions for dynamically registering resources with the MC
 import importlib
 import inspect
 import pkgutil
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from collections.abc import Callable
 
 from loguru import logger
 from mcp.server.fastmcp import FastMCP
 
 # Set of modules that have been registered
-_registered_modules: Set[str] = set()
+_registered_modules: set[str] = set()
 
 
-def register_resources_from_module(mcp_server: FastMCP, module_name: str) -> List[str]:
+def register_resources_from_module(mcp_server: FastMCP, module_name: str) -> list[str]:
     """Register all resources from a module.
 
     Args:
@@ -25,6 +24,7 @@ def register_resources_from_module(mcp_server: FastMCP, module_name: str) -> Lis
 
     Returns:
         List of registered resource names.
+
     """
     if module_name in _registered_modules:
         logger.debug(f"Module {module_name} already registered")
@@ -36,7 +36,9 @@ def register_resources_from_module(mcp_server: FastMCP, module_name: str) -> Lis
 
         # Check if the module has a register function
         if hasattr(module, "register") and callable(module.register):
-            logger.info(f"Registering resources from {module_name} using register() function")
+            logger.info(
+                f"Registering resources from {module_name} using register() function"
+            )
             module.register(mcp_server)
             _registered_modules.add(module_name)
             # We can't know what resources were registered, so return empty list
@@ -56,7 +58,9 @@ def register_resources_from_module(mcp_server: FastMCP, module_name: str) -> Lis
         return []
 
 
-def register_all_resources(mcp_server: FastMCP, package_name: str = "photoshop_mcp_server.resources") -> Dict[str, List[str]]:
+def register_all_resources(
+    mcp_server: FastMCP, package_name: str = "photoshop_mcp_server.resources"
+) -> dict[str, list[str]]:
     """Register all resources from all modules in a package.
 
     Args:
@@ -65,31 +69,34 @@ def register_all_resources(mcp_server: FastMCP, package_name: str = "photoshop_m
 
     Returns:
         Dictionary mapping module names to lists of registered resource names.
+
     """
     registered_resources = {}
-    
+
     try:
         package = importlib.import_module(package_name)
-        
+
         # Skip __init__.py and registry.py
         skip_modules = {"__init__", "registry"}
-        
-        for _, module_name, is_pkg in pkgutil.iter_modules(package.__path__, package.__name__ + "."):
+
+        for _, module_name, is_pkg in pkgutil.iter_modules(
+            package.__path__, package.__name__ + "."
+        ):
             if module_name.split(".")[-1] in skip_modules:
                 continue
-                
+
             resources = register_resources_from_module(mcp_server, module_name)
             if resources:
                 registered_resources[module_name] = resources
-                
+
             # If it's a package, register all modules in it
             if is_pkg:
                 sub_resources = register_all_resources(mcp_server, module_name)
                 registered_resources.update(sub_resources)
-                
+
     except ImportError as e:
         logger.error(f"Failed to import package {package_name}: {e}")
-        
+
     return registered_resources
 
 
@@ -103,6 +110,7 @@ def register_resource(mcp_server: FastMCP, func: Callable, path: str) -> str:
 
     Returns:
         The path of the registered resource.
+
     """
     mcp_server.resource(path)(func)
     logger.info(f"Registered resource: {path}")

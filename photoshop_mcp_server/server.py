@@ -1,32 +1,33 @@
-# -*- coding: utf-8 -*-
 """Photoshop MCP Server main module."""
 
+import logging
 import os
 import sys
-import logging
-from typing import Dict, Any, Optional
+from typing import Any
+
 from mcp.server.fastmcp import FastMCP
 
 # Import version
 from photoshop_mcp_server.app import __version__
 
-# Import registries
-from photoshop_mcp_server.tools.registry import register_all_tools
-from photoshop_mcp_server.resources.registry import register_all_resources
+# Import registry
+from photoshop_mcp_server.registry import register_all_resources, register_all_tools
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger("photoshop-mcp-server")
 
 
-def create_server(name: str = "Photoshop",
-               description: str = "Control Adobe Photoshop using MCP",
-               version: Optional[str] = None,
-               config: Optional[Dict[str, Any]] = None) -> FastMCP:
+def create_server(
+    name: str = "Photoshop",
+    description: str = "Control Adobe Photoshop using MCP",
+    version: str | None = None,
+    config: dict[str, Any] | None = None,
+) -> FastMCP:
     """Create and configure the MCP server.
 
     Args:
@@ -37,20 +38,22 @@ def create_server(name: str = "Photoshop",
 
     Returns:
         FastMCP: The configured MCP server.
+
     """
     # Use provided version or fall back to package version
     server_version = version or __version__
 
-    # Update MCP server configuration
-    from photoshop_mcp_server.app import mcp as server_mcp
-    server_mcp.name = name
-    server_mcp.description = description
-    server_mcp.version = server_version
+    # Create a new MCP server with the provided configuration
+    from mcp.server.fastmcp import FastMCP
+
+    server_mcp = FastMCP(name=name, description=description, version=server_version)
 
     # Register all resources dynamically
     logger.info("Registering resources...")
     registered_resources = register_all_resources(server_mcp)
-    logger.info(f"Registered resources from modules: {list(registered_resources.keys())}")
+    logger.info(
+        f"Registered resources from modules: {list(registered_resources.keys())}"
+    )
 
     # Register all tools dynamically
     logger.info("Registering tools...")
@@ -70,7 +73,7 @@ def create_server(name: str = "Photoshop",
 
 
 def main():
-    """Main entry point for the server.
+    """Run the main entry point for the server.
 
     This function parses command-line arguments and starts the MCP server.
     It can be invoked directly or through the 'ps-mcp' entry point.
@@ -86,7 +89,11 @@ def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Photoshop MCP Server")
     parser.add_argument("--name", default="Photoshop", help="Server name")
-    parser.add_argument("--description", default="Control Adobe Photoshop using MCP", help="Server description")
+    parser.add_argument(
+        "--description",
+        default="Control Adobe Photoshop using MCP",
+        help="Server description",
+    )
     parser.add_argument("--version", help="Server version (overrides package version)")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
@@ -102,9 +109,7 @@ def main():
     try:
         # Configure and run the server with command-line arguments
         server_mcp = create_server(
-            name=args.name,
-            description=args.description,
-            version=args.version
+            name=args.name, description=args.description, version=args.version
         )
         server_mcp.run()
     except Exception as e:

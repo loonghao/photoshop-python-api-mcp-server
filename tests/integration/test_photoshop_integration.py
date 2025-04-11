@@ -55,12 +55,13 @@ def test_create_document(photoshop_app):
     # Skip if we can't create documents
     if not hasattr(photoshop_app, "documents"):
         pytest.skip("Cannot access documents in Photoshop")
-        
+
     try:
+        import photoshop.api as ps
         doc = photoshop_app.documents.add(width=500, height=500, name="Test Document")
         assert doc is not None
         assert doc.name == "Test Document"
-        
+
         # Clean up
         doc.close(ps.SaveOptions.DoNotSaveChanges)
     except Exception as e:

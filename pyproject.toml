@@ -4,50 +4,119 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "photoshop-mcp-server"
-version = "0.1.0"
+version = "0.0.1"
 description = "MCP Server for Photoshop integration using photoshop-python-api"
 authors = ["longhao <hal.long@outlook.com>"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/loonghao/photoshop-python-api-mcp-server"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.12"
+python = ">=3.10,<3.12"
 mcp = "^1.6.0"
 photoshop-python-api = "^0.24.0"
+loguru = "^0.7.3"
+tenacity = "^9.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
-black = "^23.7.0"
-isort = "^5.12.0"
-ruff = "^0.0.284"
-pre-commit = "^3.3.3"
 pytest-cov = "^4.1.0"
 pytest-mock = "^3.11.1"
-nox = "^2023.4.22"
 
 [tool.poetry.scripts]
 ps-mcp = "photoshop_mcp_server.server:main"
 
+[tool.poetry.urls]
+Homepage = "https://github.com/loonghao/photoshop-python-api-mcp-server"
+Issues = "https://github.com/loonghao/photoshop-python-api-mcp-server/issues"
+
 [tool.mcp]
 name = "Photoshop"
 description = "Control Adobe Photoshop using MCP"
-version = "0.1.0"
+version = "0.0.1"
 icon = "https://raw.githubusercontent.com/loonghao/photoshop-python-api-mcp-server/main/assets/photoshop-icon.png"
 authors = ["Hal <hal.long@outlook.com>"]
 repository = "https://github.com/loonghao/photoshop-python-api-mcp-server"
 entrypoint = "photoshop_mcp_server.server:create_server"
 
-[tool.black]
-line-length = 120
-target-version = ["py38"]
+[tool.pytest.ini_options]
+addopts = ""
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
 
-[tool.isort]
-profile = "black"
-line_length = 120
+[tool.coverage.run]
+source = ["photoshop_mcp_server"]
+branch = true
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.1"
+tag_format = "v$version"
+version_files = [
+    "pyproject.toml:version",
+    "photoshop_mcp_server/app.py:__version__",
+]
 
 [tool.ruff]
 line-length = 120
-target-version = "py38"
-select = ["E", "F", "B", "I"]
-ignore = []
+target-version = "py310"
+src = ["photoshop_mcp_server", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle
+    "F", # pyflakes
+    "D", # pydocstyle
+    "UP", # pyupgrade
+    "RUF", # ruff-specific rules
+]
+ignore = ["D203", "D213", "ARG001", "D107", "D105", "D102", "F811", "I001"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*.py" = ["ARG001", "F401", "F811", "D107", "D105", "D102", "E501", "I001"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.nox]
+sessions = ["lint", "lint_fix", "pytest", "build"]
+python = ["3.10"]
+reuse_venv = true
+
+[tool.nox.session.lint]
+deps = ["ruff", "mypy"]
+commands = [
+    "mypy --install-types --non-interactive",
+    "ruff check .",
+    "ruff format --check .",
+    "mypy photoshop_mcp_server --strict"
+]
+
+[tool.nox.session.lint_fix]
+deps = ["ruff", "mypy"]
+commands = [
+    "ruff check --fix .",
+    "ruff format ."
+]
+
+[tool.nox.session.pytest]
+deps = ["pytest", "pytest-cov"]
+commands = [
+    "pytest tests/ --cov=photoshop_mcp_server --cov-report=xml:coverage.xml --cov-report=term-missing"
+]
+
+[tool.nox.session.build]
+deps = ["poetry"]
+commands = [
+    "poetry build"
+]

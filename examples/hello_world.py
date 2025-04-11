@@ -18,22 +18,22 @@ async def main():
     """Run the Hello World example."""
     # Path to save the output image
     output_path = os.path.join(os.path.dirname(__file__), "hello_world.jpg")
-    
+
     # Create server parameters for stdio connection
     server_params = StdioServerParameters(
         command="python",  # Executable
         args=["-m", "photoshop_mcp_server.server"],  # Module to run
     )
-    
+
     print("Starting Photoshop MCP client...")
-    
+
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             # Initialize the connection
             await session.initialize()
-            
+
             print("Connected to Photoshop MCP Server")
-            
+
             # Create a new document
             print("Creating a new document...")
             result = await session.call_tool(
@@ -45,7 +45,7 @@ async def main():
                 }
             )
             print(f"Document created: {result}")
-            
+
             # Create a text layer
             print("Adding 'Hello, World!' text layer...")
             result = await session.call_tool(
@@ -61,7 +61,7 @@ async def main():
                 }
             )
             print(f"Text layer created: {result}")
-            
+
             # Save the document
             print(f"Saving document to {output_path}...")
             result = await session.call_tool(
@@ -72,7 +72,7 @@ async def main():
                 }
             )
             print(f"Document saved: {result}")
-            
+
             print("Example completed successfully!")
 
 

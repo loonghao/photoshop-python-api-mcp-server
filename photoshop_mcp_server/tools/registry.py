@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tool registry for Photoshop MCP Server.
 
 This module provides functions for dynamically registering tools with the MCP server.
@@ -7,16 +6,16 @@ This module provides functions for dynamically registering tools with the MCP se
 import importlib
 import inspect
 import pkgutil
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from collections.abc import Callable
 
 from loguru import logger
 from mcp.server.fastmcp import FastMCP
 
 # Set of modules that have been registered
-_registered_modules: Set[str] = set()
+_registered_modules: set[str] = set()
 
 
-def register_tools_from_module(mcp_server: FastMCP, module_name: str) -> List[str]:
+def register_tools_from_module(mcp_server: FastMCP, module_name: str) -> list[str]:
     """Register all tools from a module.
 
     Args:
@@ -25,6 +24,7 @@ def register_tools_from_module(mcp_server: FastMCP, module_name: str) -> List[st
 
     Returns:
         List of registered tool names.
+
     """
     if module_name in _registered_modules:
         logger.debug(f"Module {module_name} already registered")
@@ -36,7 +36,9 @@ def register_tools_from_module(mcp_server: FastMCP, module_name: str) -> List[st
 
         # Check if the module has a register function
         if hasattr(module, "register") and callable(module.register):
-            logger.info(f"Registering tools from {module_name} using register() function")
+            logger.info(
+                f"Registering tools from {module_name} using register() function"
+            )
             module.register(mcp_server)
             _registered_modules.add(module_name)
             # We can't know what tools were registered, so return empty list
@@ -56,7 +58,9 @@ def register_tools_from_module(mcp_server: FastMCP, module_name: str) -> List[st
         return []
 
 
-def register_all_tools(mcp_server: FastMCP, package_name: str = "photoshop_mcp_server.tools") -> Dict[str, List[str]]:
+def register_all_tools(
+    mcp_server: FastMCP, package_name: str = "photoshop_mcp_server.tools"
+) -> dict[str, list[str]]:
     """Register all tools from all modules in a package.
 
     Args:
@@ -65,35 +69,38 @@ def register_all_tools(mcp_server: FastMCP, package_name: str = "photoshop_mcp_s
 
     Returns:
         Dictionary mapping module names to lists of registered tool names.
+
     """
     registered_tools = {}
-    
+
     try:
         package = importlib.import_module(package_name)
-        
+
         # Skip __init__.py and registry.py
         skip_modules = {"__init__", "registry"}
-        
-        for _, module_name, is_pkg in pkgutil.iter_modules(package.__path__, package.__name__ + "."):
+
+        for _, module_name, is_pkg in pkgutil.iter_modules(
+            package.__path__, package.__name__ + "."
+        ):
             if module_name.split(".")[-1] in skip_modules:
                 continue
-                
+
             tools = register_tools_from_module(mcp_server, module_name)
             if tools:
                 registered_tools[module_name] = tools
-                
+
             # If it's a package, register all modules in it
             if is_pkg:
                 sub_tools = register_all_tools(mcp_server, module_name)
                 registered_tools.update(sub_tools)
-                
+
     except ImportError as e:
         logger.error(f"Failed to import package {package_name}: {e}")
-        
+
     return registered_tools
 
 
-def register_tool(mcp_server: FastMCP, func: Callable, name: Optional[str] = None) -> str:
+def register_tool(mcp_server: FastMCP, func: Callable, name: str | None = None) -> str:
     """Register a function as an MCP tool.
 
     Args:
@@ -103,6 +110,7 @@ def register_tool(mcp_server: FastMCP, func: Callable, name: Optional[str] = Non
 
     Returns:
         The name of the registered tool.
+
     """
     tool_name = name or func.__name__
     mcp_server.tool(name=tool_name)(func)
