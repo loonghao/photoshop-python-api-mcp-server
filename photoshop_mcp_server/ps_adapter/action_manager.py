@@ -4,9 +4,10 @@ This module provides utilities for working with Photoshop's Action Manager API,
 which is a lower-level API that is more stable than the JavaScript API.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict
 
 import photoshop.api as ps
+from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
 
 
 class ActionManager:
@@ -22,7 +23,8 @@ class ActionManager:
         Returns:
             The character ID.
         """
-        return ps.app.stringIDToTypeID(string_id)
+        ps_app = PhotoshopApp()
+        return ps_app.app.stringIDToTypeID(string_id)
 
     @staticmethod
     def char_id_to_type_id(char_id: str) -> int:
@@ -34,7 +36,8 @@ class ActionManager:
         Returns:
             The type ID.
         """
-        return ps.app.charIDToTypeID(char_id)
+        ps_app = PhotoshopApp()
+        return ps_app.app.charIDToTypeID(char_id)
 
     @classmethod
     def get_active_document_info(cls) -> Dict[str, Any]:
@@ -45,8 +48,11 @@ class ActionManager:
             or an error message if no document is open.
         """
         try:
+            ps_app = PhotoshopApp()
+            app = ps_app.app
+
             # Check if there's an active document
-            if not ps.app.documents.length:
+            if not hasattr(app, "documents") or not app.documents.length:
                 return {
                     "success": True,
                     "error": "No active document",
@@ -62,7 +68,7 @@ class ActionManager:
             )
 
             # Get the document descriptor
-            desc = ps.app.executeActionGet(ref)
+            desc = app.executeActionGet(ref)
 
             # Extract basic document info
             result = {
@@ -157,8 +163,11 @@ class ActionManager:
             or an indication that there is no selection.
         """
         try:
+            ps_app = PhotoshopApp()
+            app = ps_app.app
+
             # Check if there's an active document
-            if not ps.app.documents.length:
+            if not hasattr(app, "documents") or not app.documents.length:
                 return {
                     "success": True,
                     "has_selection": False,
@@ -179,8 +188,9 @@ class ActionManager:
 
             # Try to get the selection
             try:
-                desc = ps.app.executeActionGet(ref)
-                has_selection = True
+                # If this doesn't throw an error, there's a selection
+                app.executeActionGet(ref)
+                # We don't need to store the result, just check if it throws an exception
             except Exception:
                 # No selection
                 return {
@@ -202,20 +212,20 @@ class ActionManager:
             )
 
             try:
-                bounds_desc = ps.app.executeActionGet(bounds_ref)
+                bounds_desc = app.executeActionGet(bounds_ref)
                 if bounds_desc.hasKey(cls.str_id_to_char_id("bounds")):
                     bounds = bounds_desc.getObjectValue(cls.str_id_to_char_id("bounds"))
-                    
+
                     # Extract bounds values
                     left = bounds.getUnitDoubleValue(cls.char_id_to_type_id("Left"))
                     top = bounds.getUnitDoubleValue(cls.char_id_to_type_id("Top "))
                     right = bounds.getUnitDoubleValue(cls.char_id_to_type_id("Rght"))
                     bottom = bounds.getUnitDoubleValue(cls.char_id_to_type_id("Btom"))
-                    
+
                     # Calculate dimensions
                     width = right - left
                     height = bottom - top
-                    
+
                     return {
                         "success": True,
                         "has_selection": True,
@@ -263,12 +273,15 @@ class ActionManager:
             A dictionary containing information about the current Photoshop session.
         """
         try:
+            ps_app = PhotoshopApp()
+            app = ps_app.app
+
             # Get basic application info
             info = {
                 "success": True,
                 "is_running": True,
-                "version": ps.app.version,
-                "build": getattr(ps.app, "build", ""),
+                "version": app.version,
+                "build": getattr(app, "build", ""),
                 "has_active_document": False,
                 "documents": [],
                 "active_document": None,
@@ -280,10 +293,10 @@ class ActionManager:
             if doc_info.get("success", False) and not doc_info.get("no_document", False):
                 info["has_active_document"] = True
                 info["active_document"] = doc_info
-                
+
                 # Get all documents
                 docs = []
-                for i in range(ps.app.documents.length):
+                for i in range(app.documents.length):
                     try:
                         # Create a reference to the document
                         doc_ref = ps.ActionReference()
@@ -291,10 +304,10 @@ class ActionManager:
                             cls.char_id_to_type_id("Dcmn"),  # Document
                             i + 1  # 1-based index
                         )
-                        
+
                         # Get the document descriptor
-                        doc_desc = ps.app.executeActionGet(doc_ref)
-                        
+                        doc_desc = app.executeActionGet(doc_ref)
+
                         # Extract basic info
                         doc_info = {
                             "name": "",
@@ -302,26 +315,26 @@ class ActionManager:
                             "height": 0,
                             "is_active": False
                         }
-                        
+
                         # Get document name
                         if doc_desc.hasKey(cls.str_id_to_char_id("title")):
                             doc_info["name"] = doc_desc.getString(cls.str_id_to_char_id("title"))
-                            
+
                         # Check if this is the active document
                         doc_info["is_active"] = (doc_info["name"] == info["active_document"]["name"])
-                        
+
                         # Get dimensions
                         if doc_desc.hasKey(cls.char_id_to_type_id("Wdth")):
                             doc_info["width"] = doc_desc.getUnitDoubleValue(cls.char_id_to_type_id("Wdth"))
                         if doc_desc.hasKey(cls.char_id_to_type_id("Hght")):
                             doc_info["height"] = doc_desc.getUnitDoubleValue(cls.char_id_to_type_id("Hght"))
-                            
+
                         docs.append(doc_info)
                     except Exception as e:
                         print(f"Error getting document {i} info: {e}")
-                
+
                 info["documents"] = docs
-            
+
             # Get preferences
             try:
                 # Create a reference to the application
@@ -335,13 +348,13 @@ class ActionManager:
                     cls.char_id_to_type_id("Ordn"),  # Ordinal
                     cls.char_id_to_type_id("Trgt")   # Target/Current
                 )
-                
+
                 # Get the application descriptor
-                app_desc = ps.app.executeActionGet(app_ref)
-                
+                app_desc = app.executeActionGet(app_ref)
+
                 # Extract preferences
                 prefs = {}
-                
+
                 # Get ruler units
                 if app_desc.hasKey(cls.str_id_to_char_id("rulerUnits")):
                     ruler_id = app_desc.getEnumerationValue(cls.str_id_to_char_id("rulerUnits"))
@@ -355,7 +368,7 @@ class ActionManager:
                         cls.char_id_to_type_id("Percent"): "Percent"
                     }
                     prefs["ruler_units"] = ruler_map.get(ruler_id, f"Unknown ({ruler_id})")
-                
+
                 # Get type units
                 if app_desc.hasKey(cls.str_id_to_char_id("typeUnits")):
                     type_id = app_desc.getEnumerationValue(cls.str_id_to_char_id("typeUnits"))
@@ -365,11 +378,11 @@ class ActionManager:
                         cls.char_id_to_type_id("Millimeter"): "Millimeters"
                     }
                     prefs["type_units"] = type_map.get(type_id, f"Unknown ({type_id})")
-                
+
                 info["preferences"] = prefs
             except Exception as e:
                 print(f"Error getting preferences: {e}")
-            
+
             return info
 
         except Exception as e:
