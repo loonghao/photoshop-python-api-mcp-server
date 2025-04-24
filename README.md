@@ -18,6 +18,18 @@ English | [简体中文](README_zh.md)
 
 This project provides a bridge between the Model Context Protocol (MCP) and Adobe Photoshop, allowing AI assistants and other MCP clients to control Photoshop programmatically.
 
+![Photoshop MCP Server Demo](assets/ps-mcp.gif)
+
+### What Can It Do?
+
+With this MCP server, AI assistants can:
+
+- Create, open, and save Photoshop documents
+- Create and manipulate layers (text, solid color, etc.)
+- Get information about the Photoshop session and documents
+- Apply effects and adjustments to images
+- And much more!
+
 ## Requirements
 
 - **Windows OS only**: This server uses COM interface which is only available on Windows
@@ -81,13 +93,11 @@ The server provides various tools for controlling Photoshop:
 - **Layer Tools**: Create text layers, solid color layers, etc.
 - **Session Tools**: Get information about Photoshop session, active document, selection
 
-## Basic Usage Example
+## Example Prompts for AI Assistants
 
-Once configured in your MCP host, you can use the Photoshop MCP server in your AI assistant conversations.
+Once configured in your MCP host, you can use the Photoshop MCP server in your AI assistant conversations. Here are some example prompts to get you started:
 
-![Photoshop MCP Server Demo](assets/ps-mcp.gif)
-
-Example conversation:
+### Basic Examples
 
 ```text
 User: Can you create a new Photoshop document and add a text layer with "Hello World"?
@@ -99,6 +109,35 @@ AI Assistant: I'll create a new document and add the text layer for you.
 2. Add a text layer using the `create_text_layer` tool with the text "Hello World"]
 
 I've created a new Photoshop document and added a text layer with "Hello World".
+```
+
+### More Advanced Examples
+
+```text
+User: Open my latest PSD file and tell me how many layers it has.
+
+AI Assistant: I'll check your latest PSD file and count the layers.
+
+[The AI uses the Photoshop MCP server to:
+1. Get information about open documents
+2. If no document is open, it can browse and open a PSD file
+3. Retrieve and analyze the layer structure]
+
+Your document has 12 layers, including 3 group folders and 2 adjustment layers.
+```
+
+```text
+User: Create a social media post with a gradient background and the text "Summer Sale" in a bold font.
+
+AI Assistant: I'll create that social media post for you.
+
+[The AI uses the Photoshop MCP server to:
+1. Create a new document with appropriate dimensions for social media
+2. Create a gradient fill layer with summer colors
+3. Add a text layer with "Summer Sale" in a bold font
+4. Position and style the text appropriately]
+
+I've created your social media post with a gradient background and bold "Summer Sale" text.
 ```
 
 ## License
