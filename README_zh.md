@@ -49,7 +49,7 @@ uv install photoshop-mcp-server
   "mcpServers": {
     "photoshop": {
       "command": "uvx",
-      "args": ["photoshop-mcp-server"],
+      "args": ["--python", "3.10", "photoshop-mcp-server"],
       "env": {
         "PS_VERSION": "2024"
       }
@@ -63,6 +63,7 @@ uv install photoshop-mcp-server
 - **PS_VERSION**：指定要连接的 Photoshop 版本（例如，"2024"、"2023"、"2022" 等）
 - **command**：使用 `uvx` 作为标准方法
 - **args**：使用 `["photoshop-mcp-server"]` 运行 Photoshop MCP 服务器
+  - 要显式指定 Python 版本，请使用 `["--python", "3.10", "photoshop-mcp-server"]`
 
 ## 主要功能
 

@@ -49,7 +49,7 @@ Add the following to your MCP host configuration (works with Claude Desktop, Win
   "mcpServers": {
     "photoshop": {
       "command": "uvx",
-      "args": ["photoshop-mcp-server"],
+      "args": ["--python", "3.10", "photoshop-mcp-server"],
       "env": {
         "PS_VERSION": "2024"
       }
@@ -63,6 +63,7 @@ Add the following to your MCP host configuration (works with Claude Desktop, Win
 - **PS_VERSION**: Specify the Photoshop version to connect to (e.g., "2024", "2023", "2022", etc.)
 - **command**: Use `uvx` for the standard approach
 - **args**: Use `["photoshop-mcp-server"]` to run the Photoshop MCP server
+  - To specify a Python version explicitly, use `["--python", "3.10", "photoshop-mcp-server"]`
 
 ## Key Features
 
