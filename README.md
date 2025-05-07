@@ -10,6 +10,8 @@
 [![GitHub issues](https://img.shields.io/github/issues/loonghao/photoshop-python-api-mcp-server.svg)](https://github.com/loonghao/photoshop-python-api-mcp-server/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/loonghao/photoshop-python-api-mcp-server.svg)](https://github.com/loonghao/photoshop-python-api-mcp-server/commits/main)
 
+> **⚠️ WINDOWS ONLY**: This server only works on Windows operating systems due to its dependency on Windows-specific COM interfaces.
+
 A Model Context Protocol (MCP) server for Photoshop integration using photoshop-python-api.
 
 English | [简体中文](README_zh.md)
@@ -32,11 +34,20 @@ With this MCP server, AI assistants can:
 
 ## Requirements
 
-- **Windows OS only**: This server uses COM interface which is only available on Windows
+### System Requirements
+
+- **🔴 WINDOWS OS ONLY**: This server ONLY works on Windows operating systems
+  - The server relies on Windows-specific COM interfaces to communicate with Photoshop
+  - macOS and Linux are NOT supported and CANNOT run this software
+
+### Software Requirements
+
 - **Adobe Photoshop**: Must be installed locally (tested with versions CC2017 through 2024)
 - **Python**: Version 3.10 or higher
 
 ## Installation
+
+> **Note**: Remember that this package only works on Windows systems.
 
 ```bash
 # Install using pip
@@ -75,7 +86,7 @@ Add the following to your MCP host configuration (works with Claude Desktop, Win
 - **PS_VERSION**: Specify the Photoshop version to connect to (e.g., "2024", "2023", "2022", etc.)
 - **command**: Use `uvx` for the standard approach
 - **args**: Use `["photoshop-mcp-server"]` to run the Photoshop MCP server
-  - To specify a Python version explicitly, use `["--python", "3.10", "photoshop-mcp-server"]`
+  - To specify a Python version explicitly, use `["--python", "3.10", "photoshop-mcp-server"]` (any version from 3.10 to 3.14 is supported)
 
 ## Key Features
 

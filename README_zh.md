@@ -10,6 +10,8 @@
 [![GitHub issues](https://img.shields.io/github/issues/loonghao/photoshop-python-api-mcp-server.svg)](https://github.com/loonghao/photoshop-python-api-mcp-server/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/loonghao/photoshop-python-api-mcp-server.svg)](https://github.com/loonghao/photoshop-python-api-mcp-server/commits/main)
 
+> **⚠️ 仅支持 Windows**: 此服务器仅适用于 Windows 操作系统，因为它依赖于 Windows 特有的 COM 接口。
+
 一个使用 photoshop-python-api 的 Photoshop 集成的模型上下文协议 (MCP) 服务器。
 
 [English](README.md) | 简体中文
@@ -32,11 +34,20 @@
 
 ## 要求
 
-- **仅支持 Windows 系统**：此服务器使用 COM 接口，仅在 Windows 上可用
+### 系统要求
+
+- **🔴 仅支持 Windows 系统**：此服务器**仅**适用于 Windows 操作系统
+  - 服务器依赖于 Windows 特有的 COM 接口与 Photoshop 通信
+  - macOS 和 Linux **不受支持**，**无法**运行此软件
+
+### 软件要求
+
 - **Adobe Photoshop**：必须在本地安装（已测试 CC2017 至 2024 版本）
 - **Python**：版本 3.10 或更高
 
 ## 安装
+
+> **注意**：请记住，此软件包仅适用于 Windows 系统。
 
 ```bash
 # 使用 pip 安装
@@ -75,7 +86,7 @@ uv install photoshop-mcp-server
 - **PS_VERSION**：指定要连接的 Photoshop 版本（例如，"2024"、"2023"、"2022" 等）
 - **command**：使用 `uvx` 作为标准方法
 - **args**：使用 `["photoshop-mcp-server"]` 运行 Photoshop MCP 服务器
-  - 要显式指定 Python 版本，请使用 `["--python", "3.10", "photoshop-mcp-server"]`
+  - 要显式指定 Python 版本，请使用 `["--python", "3.10", "photoshop-mcp-server"]`（支持从 3.10 到 3.14 的任何版本）
 
 ## 主要功能
 

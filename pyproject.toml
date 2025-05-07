@@ -17,7 +17,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.12"
+python = ">=3.10,<3.15"
 mcp = "^1.6.0"
 photoshop-python-api = "^0.24.0"
 loguru = "^0.7.3"
@@ -90,7 +90,7 @@ line-ending = "auto"
 
 [tool.nox]
 sessions = ["lint", "lint_fix", "pytest", "build"]
-python = ["3.10"]
+python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
 reuse_venv = true
 
 [tool.nox.session.lint]
