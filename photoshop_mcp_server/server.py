@@ -3,7 +3,7 @@
 import logging
 import os
 import sys
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -25,8 +25,8 @@ logger = logging.getLogger("photoshop-mcp-server")
 def create_server(
     name: str = "Photoshop",
     description: str = "Control Adobe Photoshop using MCP",
-    version: Optional[str] = None,
-    config: Optional[Dict[str, Any]] = None,
+    version: str | None = None,
+    config: dict[str, Any] | None = None,
 ) -> FastMCP:
     """Create and configure the MCP server.
 
