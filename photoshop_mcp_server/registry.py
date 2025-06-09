@@ -9,17 +9,16 @@ import pkgutil
 from collections.abc import Callable
 from typing import Literal
 
-from loguru import logger
 from mcp.server.fastmcp import FastMCP
 
 from photoshop_mcp_server.decorators import debug_tool, log_tool_call
 
 # Set of modules that have been registered
 _registered_modules: set[str] = set()
-
+logger = None
 
 def register_from_module(
-    mcp_server: FastMCP, module_name: str, registry_type: Literal["tool", "resource"]
+    mcp_server: FastMCP, module_name: str, registry_type: Literal["tool", "resource"],**keys
 ) -> list[str]:
     """Register all tools or resources from a module.
 
@@ -43,10 +42,14 @@ def register_from_module(
 
         # Check if the module has a register function
         if hasattr(module, "register") and callable(module.register):
-            logger.info(
-                f"Registering {registry_type}s from {module_name} using register() function"
-            )
-            module.register(mcp_server)
+            if logger:
+                logger.info(
+                    f"Registering {registry_type}s from {module_name} using register() function"
+                )
+            if module.register.__code__.co_argcount == 2:
+                module.register(mcp_server, logger)
+            else:
+                module.register(mcp_server)
             _registered_modules.add(registry_key)
             # We can't know what items were registered, so return empty list
             return registered_items
@@ -67,7 +70,7 @@ def register_from_module(
 
 
 def register_all(
-    mcp_server: FastMCP, package_name: str, registry_type: Literal["tool", "resource"]
+    mcp_server: FastMCP, package_name: str, registry_type: Literal["tool", "resource"],**keys
 ) -> dict[str, list[str]]:
     """Register all tools or resources from all modules in a package.
 
@@ -94,7 +97,7 @@ def register_all(
             if module_name.split(".")[-1] in skip_modules:
                 continue
 
-            items = register_from_module(mcp_server, module_name, registry_type)
+            items = register_from_module(mcp_server, module_name, registry_type,**keys)
             if items:
                 registered_items[module_name] = items
 
@@ -110,7 +113,7 @@ def register_all(
 
 
 def register_all_tools(
-    mcp_server: FastMCP, package_name: str = "photoshop_mcp_server.tools"
+    mcp_server: FastMCP, package_name: str = "photoshop_mcp_server.tools",**keys
 ) -> dict[str, list[str]]:
     """Register all tools from all modules in a package.
 
@@ -122,11 +125,11 @@ def register_all_tools(
         Dictionary mapping module names to lists of registered tool names.
 
     """
-    return register_all(mcp_server, package_name, "tool")
+    return register_all(mcp_server, package_name, "tool",**keys)
 
 
 def register_all_resources(
-    mcp_server: FastMCP, package_name: str = "photoshop_mcp_server.resources"
+    mcp_server: FastMCP, package_name: str = "photoshop_mcp_server.resources" , **keys
 ) -> dict[str, list[str]]:
     """Register all resources from all modules in a package.
 
@@ -138,6 +141,8 @@ def register_all_resources(
         Dictionary mapping module names to lists of registered resource names.
 
     """
+    global logger
+    logger = keys.get("logger",None)
     return register_all(mcp_server, package_name, "resource")
 
 
@@ -179,7 +184,8 @@ def register_tool(
         decorated_func = func
 
     mcp_server.tool(name=tool_name)(decorated_func)
-    logger.info(f"Registered tool: {tool_name}")
+    if logger:
+        logger.info(f"Registered tool: {tool_name}")
     return tool_name
 
 
@@ -196,5 +202,6 @@ def register_resource(mcp_server: FastMCP, func: Callable, path: str) -> str:
 
     """
     mcp_server.resource(path)(func)
-    logger.info(f"Registered resource: {path}")
+    if logger:
+        logger.info(f"Registered resource: {path}")
     return path

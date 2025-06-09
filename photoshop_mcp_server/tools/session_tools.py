@@ -1,12 +1,11 @@
 """Session-related MCP tools for Photoshop."""
-
+from logging import Logger
 from typing import Any
 
 from photoshop_mcp_server.ps_adapter.action_manager import ActionManager
 from photoshop_mcp_server.registry import register_tool
-
-
-def register(mcp):
+from mcp.server.fastmcp import FastMCP
+def register(mcp:FastMCP,logger:Logger = None):
     """Register session-related tools.
 
     Args:
@@ -76,9 +75,9 @@ def register(mcp):
             return doc_info
 
         except Exception as e:
-            print(f"Error getting active document info: {e}")
             import traceback
-
+            if logger:
+                logger.error(f"Error getting active document info: {e}")
             tb_text = traceback.format_exc()
             traceback.print_exc()
 
@@ -99,18 +98,15 @@ def register(mcp):
 
         """
         try:
-            print("Getting selection information using Action Manager")
-
+            logger.info("Getting selection information using Action Manager")
             # Use Action Manager to get selection info
             selection_info = ActionManager.get_selection_info()
-            print(
-                f"Selection info retrieved successfully: {selection_info.get('success', False)}"
-            )
+            logger.info(f"Selection info retrieved successfully: {selection_info.get('success', False)}")
 
             return selection_info
 
         except Exception as e:
-            print(f"Error getting selection info: {e}")
+            logger.error(f"Error getting selection info: {e}")
             import traceback
 
             tb_text = traceback.format_exc()

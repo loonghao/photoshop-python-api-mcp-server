@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 from typing import Any
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mcp.server.fastmcp import FastMCP
 
@@ -14,10 +15,14 @@ from photoshop_mcp_server.app import __version__
 from photoshop_mcp_server.registry import register_all_resources, register_all_tools
 
 # Configure logging
+log_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_photoshop.log")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
+    handlers=[
+        logging.StreamHandler(sys.stderr),
+        logging.FileHandler(log_file, encoding='utf-8')
+    ],
 )
 logger = logging.getLogger("photoshop-mcp-server")
 
@@ -50,14 +55,14 @@ def create_server(
 
     # Register all resources dynamically
     logger.info("Registering resources...")
-    registered_resources = register_all_resources(server_mcp)
+    registered_resources = register_all_resources(server_mcp, logger = logger)
     logger.info(
         f"Registered resources from modules: {list(registered_resources.keys())}"
     )
 
     # Register all tools dynamically
     logger.info("Registering tools...")
-    registered_tools = register_all_tools(server_mcp)
+    registered_tools = register_all_tools(server_mcp, logger = logger)
     logger.info(f"Registered tools from modules: {list(registered_tools.keys())}")
 
     # Apply additional configuration if provided
