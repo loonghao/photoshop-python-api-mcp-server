@@ -143,7 +143,7 @@ def register_all_resources(
     """
     global logger
     logger = keys.get("logger",None)
-    return register_all(mcp_server, package_name, "resource")
+    return register_all(mcp_server, package_name, "resource", **keys)
 
 
 def register_tool(

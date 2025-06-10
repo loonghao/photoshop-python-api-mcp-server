@@ -25,18 +25,18 @@ def register(mcp:FastMCP,logger:Logger = None):
 
         """
         try:
-            print("Getting Photoshop session information using Action Manager")
+            if logger:
+                logger.info("Getting Photoshop session information using Action Manager")
 
             # Use Action Manager to get session info
             session_info = ActionManager.get_session_info()
-            print(
-                f"Session info retrieved successfully: {session_info.get('success', False)}"
-            )
+            if logger:
+                logger.info(f"Session info retrieved successfully: {session_info.get('success', False)}")
 
             return session_info
 
         except Exception as e:
-            print(f"Error getting Photoshop session info: {e}")
+            logger.error(f"Error getting Photoshop session info: {e}")
             import traceback
 
             tb_text = traceback.format_exc()
@@ -64,13 +64,12 @@ def register(mcp:FastMCP,logger:Logger = None):
 
         """
         try:
-            print("Getting active document information using Action Manager")
-
+            if logger:
+                logger.info("Getting active document information using Action Manager")
             # Use Action Manager to get document info
             doc_info = ActionManager.get_active_document_info()
-            print(
-                f"Document info retrieved successfully: {doc_info.get('success', False)}"
-            )
+            if logger:
+                logger.info(f"Document info retrieved successfully: {doc_info.get('success', False)}")
 
             return doc_info
 

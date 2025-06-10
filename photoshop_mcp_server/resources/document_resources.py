@@ -1,9 +1,9 @@
 """Document-related MCP resources."""
 
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
+from logging import Logger
 
-
-def register(mcp):
+def register(mcp, logger:Logger = None):
     """Register document-related resources.
 
     Args:
@@ -37,11 +37,18 @@ def register(mcp):
         doc = ps_app.get_active_document()
         if not doc:
             return {"error": "No active document"}
-
+        if isinstance(doc.width,float):
+            width = doc.width
+        else:
+            width = doc.width.value
+        if isinstance(doc.height,float):
+            height = doc.height
+        else:
+            height = doc.height.value
         return {
             "name": doc.name,
-            "width": doc.width.value,
-            "height": doc.height.value,
+            "width": width,
+            "height": height,
             "resolution": doc.resolution,
             "layers_count": len(doc.artLayers),
         }
