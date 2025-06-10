@@ -1,12 +1,12 @@
 """Layer-related MCP tools."""
 
 import photoshop.api as ps
+from logging import Logger
 
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
 from photoshop_mcp_server.registry import register_tool
 
-
-def register(mcp):
+def register(mcp,logger:Logger = None):
     """Register layer-related tools.
 
     Args:
@@ -176,9 +176,7 @@ def register(mcp):
             return {"success": False, "error": "No active document"}
 
         try:
-            print(
-                f"Creating solid color layer: name='{name}', color=({color_r}, {color_g}, {color_b})"
-            )
+            logger.info(f"Creating solid color layer: name='{name}', color=({color_r}, {color_g}, {color_b})")
 
             # Escape special characters in the name for JavaScript
             escaped_name = (
