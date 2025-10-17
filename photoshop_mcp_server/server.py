@@ -46,7 +46,7 @@ def create_server(
     # Create a new MCP server with the provided configuration
     from mcp.server.fastmcp import FastMCP
 
-    server_mcp = FastMCP(name=name, description=description, version=server_version)
+    server_mcp = FastMCP(name=name)
 
     # Register all resources dynamically
     logger.info("Registering resources...")
