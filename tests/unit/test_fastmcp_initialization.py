@@ -46,7 +46,7 @@ class TestFastMCPInitialization:
         create_server accepts a description parameter, it should NOT
         pass it to FastMCP.
         """
-        with patch("photoshop_mcp_server.server.FastMCP") as mock_fastmcp:
+        with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
             mock_instance = MagicMock()
             mock_fastmcp.return_value = mock_instance
 
@@ -66,7 +66,7 @@ class TestFastMCPInitialization:
         This validates that the version parameter is handled internally
         but not passed to FastMCP.
         """
-        with patch("photoshop_mcp_server.server.FastMCP") as mock_fastmcp:
+        with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
             mock_instance = MagicMock()
             mock_fastmcp.return_value = mock_instance
 
@@ -86,7 +86,7 @@ class TestFastMCPInitialization:
         This comprehensive test ensures that even when all parameters are
         provided to create_server, FastMCP is initialized correctly.
         """
-        with patch("photoshop_mcp_server.server.FastMCP") as mock_fastmcp:
+        with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
             mock_instance = MagicMock()
             mock_fastmcp.return_value = mock_instance
 

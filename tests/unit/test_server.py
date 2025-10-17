@@ -55,7 +55,7 @@ class TestCreateServer:
         avoiding the 'unexpected keyword argument' error that occurred with
         older versions that tried to pass 'description' and 'version'.
         """
-        with patch("photoshop_mcp_server.server.FastMCP") as mock_fastmcp:
+        with patch("mcp.server.fastmcp.FastMCP") as mock_fastmcp:
             mock_instance = MagicMock()
             mock_fastmcp.return_value = mock_instance
 
