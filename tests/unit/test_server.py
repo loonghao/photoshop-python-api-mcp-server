@@ -60,11 +60,7 @@ class TestCreateServer:
             mock_fastmcp.return_value = mock_instance
 
             # Call create_server with various parameters
-            create_server(
-                name="TestServer",
-                description="Test Description",
-                version="0.1.0"
-            )
+            create_server(name="TestServer", description="Test Description", version="0.1.0")
 
             # Verify FastMCP was called with only the name parameter
             mock_fastmcp.assert_called_once_with(name="TestServer")
@@ -79,6 +75,7 @@ class TestCreateServer:
             assert isinstance(server, FastMCP)
             # Verify environment variable was set
             import os
+
             assert os.environ.get("TEST_VAR") == "test_value"
 
     def test_create_server_registers_resources(self):
