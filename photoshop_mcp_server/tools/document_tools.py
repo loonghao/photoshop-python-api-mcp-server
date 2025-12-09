@@ -1,12 +1,14 @@
 """Document-related MCP tools."""
 
 import photoshop.api as ps
+from logging import Logger
 
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
 from photoshop_mcp_server.registry import register_tool
 
 
-def register(mcp):
+
+def register(mcp,logger:Logger = None):
     """Register document-related tools.
 
     Args:
@@ -33,9 +35,7 @@ def register(mcp):
             dict: Result of the operation.
 
         """
-        print(
-            f"Creating document: width={width}, height={height}, name={name}, mode={mode}"
-        )
+        logger.info(f"Creating document: width={width}, height={height}, name={name}, mode={mode}")
         ps_app = PhotoshopApp()
         try:
             # Validate mode parameter
@@ -53,9 +53,7 @@ def register(mcp):
                 }
 
             # Create document
-            print(
-                f"Calling ps_app.create_document with width={width}, height={height}, name={name}, mode={mode}"
-            )
+            logger.info(f"Calling ps_app.create_document with width={width}, height={height}, name={name}, mode={mode}")
             doc = ps_app.create_document(
                 width=width, height=height, name=name, mode=mode
             )
@@ -68,37 +66,37 @@ def register(mcp):
 
             # Get document properties safely
             try:
-                print("Document created, getting properties")
+                logger.info("Document created, getting properties")
                 doc_name = doc.name
-                print(f"Document name: {doc_name}")
+                logger.info(f"Document name: {doc_name}")
 
                 # Get width safely
                 doc_width = width  # Default fallback
                 if hasattr(doc, "width"):
                     width_obj = doc.width
-                    print(f"Width object type: {type(width_obj)}")
+                    logger.info(f"Width object type: {type(width_obj)}")
                     if hasattr(width_obj, "value"):
                         doc_width = width_obj.value
                     else:
                         try:
                             doc_width = float(width_obj)
                         except (TypeError, ValueError):
-                            print(f"Could not convert width to float: {width_obj}")
-                print(f"Document width: {doc_width}")
+                            logger.error(f"Could not convert width to float: {width_obj} ")
+                logger.info(f"Document width: {doc_width}")
 
                 # Get height safely
                 doc_height = height  # Default fallback
                 if hasattr(doc, "height"):
                     height_obj = doc.height
-                    print(f"Height object type: {type(height_obj)}")
+                    logger.info(f"Height object type: {type(height_obj)}")
                     if hasattr(height_obj, "value"):
                         doc_height = height_obj.value
                     else:
                         try:
                             doc_height = float(height_obj)
                         except (TypeError, ValueError):
-                            print(f"Could not convert height to float: {height_obj}")
-                print(f"Document height: {doc_height}")
+                            logger.error(f"Could not convert height to float: {height_obj} ")
+                logger.info(f"Document height: {doc_height}")
 
                 return {
                     "success": True,
@@ -107,7 +105,7 @@ def register(mcp):
                     "height": doc_height,
                 }
             except Exception as prop_error:
-                print(f"Error getting document properties: {prop_error}")
+                logger.error(f"Error getting document properties: {prop_error}")
                 import traceback
 
                 traceback.print_exc()
@@ -120,7 +118,7 @@ def register(mcp):
                     "warning": f"Created document but couldn't get properties: {prop_error!s}",
                 }
         except Exception as e:
-            print(f"Error creating document: {e}")
+            logger.error(f"Error creating document: {e}")
             import traceback
 
             tb_text = traceback.format_exc()
