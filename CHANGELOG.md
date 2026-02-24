@@ -1,3 +1,9 @@
+## v0.1.11 (2026-02-24)
+
+### Fix
+
+- redirect logging output from stdout to stderr
+
 ## v0.1.10 (2025-10-17)
 
 ### Fix

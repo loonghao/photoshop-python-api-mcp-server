@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "photoshop-mcp-server"
-version = "0.1.10"
+version = "0.1.11"
 description = "MCP Server for Photoshop integration using photoshop-python-api"
 authors = ["longhao <hal.long@outlook.com>"]
 readme = "README.md"
@@ -38,7 +38,7 @@ Issues = "https://github.com/loonghao/photoshop-python-api-mcp-server/issues"
 [tool.mcp]
 name = "Photoshop"
 description = "Control Adobe Photoshop using MCP"
-version = "0.1.10"
+version = "0.1.11"
 icon = "https://raw.githubusercontent.com/loonghao/photoshop-python-api-mcp-server/main/assets/photoshop-icon.png"
 authors = ["Hal <hal.long@outlook.com>"]
 repository = "https://github.com/loonghao/photoshop-python-api-mcp-server"
@@ -56,7 +56,7 @@ branch = true
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.10"
+version = "0.1.11"
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version",
