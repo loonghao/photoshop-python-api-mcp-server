@@ -91,6 +91,37 @@ def register(mcp):
     tool_name = register_tool(mcp, get_active_document_info, "get_active_document_info")
     registered_tools.append(tool_name)
 
+    def get_document_layer_tree() -> dict[str, Any]:
+        """Get nested layer/group tree for the active document.
+
+        Returns:
+            dict: Recursive hierarchy of groups and layers.
+
+        """
+        try:
+            print("Getting document layer tree using Action Manager + JavaScript")
+
+            tree_info = ActionManager.get_document_layer_tree()
+            print(
+                f"Document layer tree retrieved successfully: {tree_info.get('success', False)}"
+            )
+
+            return tree_info
+
+        except Exception as e:
+            print(f"Error getting document layer tree: {e}")
+            import traceback
+
+            tb_text = traceback.format_exc()
+            traceback.print_exc()
+
+            detailed_error = f"Error getting document layer tree:\nError: {e!s}\n\nTraceback:\n{tb_text}"
+
+            return {"success": False, "error": str(e), "detailed_error": detailed_error}
+
+    tool_name = register_tool(mcp, get_document_layer_tree, "get_document_layer_tree")
+    registered_tools.append(tool_name)
+
     def get_selection_info() -> dict[str, Any]:
         """Get information about the current selection in the active document.
 
