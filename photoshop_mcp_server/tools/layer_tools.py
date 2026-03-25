@@ -252,5 +252,284 @@ def register(mcp):
     tool_name = register_tool(mcp, create_solid_color_layer, "create_solid_color_layer")
     registered_tools.append(tool_name)
 
+    def create_group(
+        name: str = "Group 1",
+        parent_group_name: str | None = None,
+        if_exists_return_existing: bool = True,
+    ) -> dict:
+        """Create a new layer group.
+
+        Args:
+            name: Group name.
+            parent_group_name: Optional parent group name for nested group creation.
+            if_exists_return_existing: Return existing same-name group in the target
+                scope instead of creating a duplicate.
+
+        Returns:
+            dict: Result of the operation.
+
+        """
+        # Sanitize input strings to ensure valid UTF-8
+        try:
+            if isinstance(name, bytes):
+                name = name.decode("utf-8", errors="replace")
+            else:
+                name = name.encode("utf-8", errors="replace").decode(
+                    "utf-8", errors="replace"
+                )
+
+            if isinstance(parent_group_name, bytes):
+                parent_group_name = parent_group_name.decode("utf-8", errors="replace")
+            elif isinstance(parent_group_name, str):
+                parent_group_name = parent_group_name.encode(
+                    "utf-8", errors="replace"
+                ).decode("utf-8", errors="replace")
+
+            print(
+                f"Sanitized group names: name='{name}', parent_group_name='{parent_group_name}'"
+            )
+        except Exception as e:
+            print(f"Error sanitizing group inputs: {e}")
+            return {
+                "success": False,
+                "error": f"Invalid name encoding: {e!s}",
+                "detailed_error": (
+                    "The group name provided contains invalid characters that cannot be properly encoded in UTF-8. "
+                    "Please check the name and try again with valid characters."
+                ),
+            }
+
+        ps_app = PhotoshopApp()
+        doc = ps_app.get_active_document()
+        if not doc:
+            return {"success": False, "error": "No active document"}
+
+        try:
+            print(
+                f"Creating group with name='{name}', parent_group_name='{parent_group_name}'"
+            )
+            result = ps_app.create_group(
+                name=name,
+                parent_group_name=parent_group_name,
+                if_exists_return_existing=if_exists_return_existing,
+            )
+            print(f"Create group result: {result}")
+            return result
+        except Exception as e:
+            print(f"Error creating group: {e}")
+            import traceback
+
+            tb_text = traceback.format_exc()
+            traceback.print_exc()
+
+            return {
+                "success": False,
+                "error": str(e),
+                "detailed_error": (
+                    "Error creating group with parameters:\n"
+                    f"  name: {name}\n"
+                    f"  parent_group_name: {parent_group_name}\n\n"
+                    f"Error: {e!s}\n\n"
+                    f"Traceback:\n{tb_text}"
+                ),
+                "parameters": {
+                    "name": name,
+                    "parent_group_name": parent_group_name,
+                    "if_exists_return_existing": if_exists_return_existing,
+                },
+            }
+
+    tool_name = register_tool(mcp, create_group, "create_group")
+    registered_tools.append(tool_name)
+
+    def move_layer_to_group(layer_name: str, group_name: str) -> dict:
+        """Move a layer into a target group.
+
+        Args:
+            layer_name: Name of the source layer.
+            group_name: Name of the destination group.
+
+        Returns:
+            dict: Result of the operation.
+
+        """
+        # Sanitize input strings to ensure valid UTF-8
+        try:
+            if isinstance(layer_name, bytes):
+                layer_name = layer_name.decode("utf-8", errors="replace")
+            else:
+                layer_name = layer_name.encode("utf-8", errors="replace").decode(
+                    "utf-8", errors="replace"
+                )
+
+            if isinstance(group_name, bytes):
+                group_name = group_name.decode("utf-8", errors="replace")
+            else:
+                group_name = group_name.encode("utf-8", errors="replace").decode(
+                    "utf-8", errors="replace"
+                )
+
+            print(
+                f"Sanitized move params: layer_name='{layer_name}', group_name='{group_name}'"
+            )
+        except Exception as e:
+            print(f"Error sanitizing move params: {e}")
+            return {
+                "success": False,
+                "error": f"Invalid name encoding: {e!s}",
+                "detailed_error": (
+                    "One or more provided names contain invalid characters that cannot be properly encoded in UTF-8. "
+                    "Please check the names and try again."
+                ),
+            }
+
+        ps_app = PhotoshopApp()
+        doc = ps_app.get_active_document()
+        if not doc:
+            return {"success": False, "error": "No active document"}
+
+        try:
+            print(
+                f"Moving layer '{layer_name}' to group '{group_name}'"
+            )
+            result = ps_app.move_layer_to_group(layer_name=layer_name, group_name=group_name)
+            print(f"Move layer result: {result}")
+            return result
+        except Exception as e:
+            print(f"Error moving layer to group: {e}")
+            import traceback
+
+            tb_text = traceback.format_exc()
+            traceback.print_exc()
+
+            return {
+                "success": False,
+                "error": str(e),
+                "detailed_error": (
+                    "Error moving layer to group with parameters:\n"
+                    f"  layer_name: {layer_name}\n"
+                    f"  group_name: {group_name}\n\n"
+                    f"Error: {e!s}\n\n"
+                    f"Traceback:\n{tb_text}"
+                ),
+                "parameters": {
+                    "layer_name": layer_name,
+                    "group_name": group_name,
+                },
+            }
+
+    tool_name = register_tool(mcp, move_layer_to_group, "move_layer_to_group")
+    registered_tools.append(tool_name)
+
+    def layer_delete(layer_name: str) -> dict:
+        """Delete a layer by name.
+
+        Args:
+            layer_name: Name of the layer to delete.
+
+        Returns:
+            dict: Result of the operation.
+
+        """
+        try:
+            if isinstance(layer_name, bytes):
+                layer_name = layer_name.decode("utf-8", errors="replace")
+            else:
+                layer_name = layer_name.encode("utf-8", errors="replace").decode(
+                    "utf-8", errors="replace"
+                )
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Invalid name encoding: {e!s}",
+            }
+
+        ps_app = PhotoshopApp()
+        doc = ps_app.get_active_document()
+        if not doc:
+            return {"success": False, "error": "No active document"}
+
+        try:
+            return ps_app.layer_delete(layer_name=layer_name)
+        except Exception as e:
+            import traceback
+
+            tb_text = traceback.format_exc()
+            traceback.print_exc()
+
+            return {
+                "success": False,
+                "error": str(e),
+                "detailed_error": (
+                    "Error deleting layer with parameters:\n"
+                    f"  layer_name: {layer_name}\n\n"
+                    f"Error: {e!s}\n\n"
+                    f"Traceback:\n{tb_text}"
+                ),
+                "parameters": {"layer_name": layer_name},
+            }
+
+    tool_name = register_tool(mcp, layer_delete, "layer_delete")
+    registered_tools.append(tool_name)
+
+    def group_delete(group_name: str, delete_contents: bool = True) -> dict:
+        """Delete a group by name.
+
+        Args:
+            group_name: Name of the group to delete.
+            delete_contents: If False, refuse to delete non-empty groups.
+
+        Returns:
+            dict: Result of the operation.
+
+        """
+        try:
+            if isinstance(group_name, bytes):
+                group_name = group_name.decode("utf-8", errors="replace")
+            else:
+                group_name = group_name.encode("utf-8", errors="replace").decode(
+                    "utf-8", errors="replace"
+                )
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Invalid name encoding: {e!s}",
+            }
+
+        ps_app = PhotoshopApp()
+        doc = ps_app.get_active_document()
+        if not doc:
+            return {"success": False, "error": "No active document"}
+
+        try:
+            return ps_app.group_delete(
+                group_name=group_name,
+                delete_contents=delete_contents,
+            )
+        except Exception as e:
+            import traceback
+
+            tb_text = traceback.format_exc()
+            traceback.print_exc()
+
+            return {
+                "success": False,
+                "error": str(e),
+                "detailed_error": (
+                    "Error deleting group with parameters:\n"
+                    f"  group_name: {group_name}\n"
+                    f"  delete_contents: {delete_contents}\n\n"
+                    f"Error: {e!s}\n\n"
+                    f"Traceback:\n{tb_text}"
+                ),
+                "parameters": {
+                    "group_name": group_name,
+                    "delete_contents": delete_contents,
+                },
+            }
+
+    tool_name = register_tool(mcp, group_delete, "group_delete")
+    registered_tools.append(tool_name)
+
     # Return the list of registered tools
     return registered_tools
