@@ -150,8 +150,35 @@ class ActionManager:
             except Exception as e:
                 print(f"Error getting document path: {e}")
 
-            # Get layers info would require more complex Action Manager code
-            # This is a simplified implementation
+            # Layer information is easier and more reliable through the DOM API.
+            # Use it as a companion to the Action Manager document metadata above.
+            try:
+                doc = ps_app.get_active_document()
+                if doc:
+                    for i, layer in enumerate(doc.artLayers):
+                        is_background = bool(getattr(layer, "isBackgroundLayer", False))
+                        if is_background:
+                            continue
+
+                        result["layers"].append(
+                            {
+                                "index": i,
+                                "name": getattr(layer, "name", ""),
+                                "visible": getattr(layer, "visible", True),
+                                "kind": str(getattr(layer, "kind", "Unknown")),
+                            }
+                        )
+
+                    for i, layer_set in enumerate(doc.layerSets):
+                        result["layer_sets"].append(
+                            {
+                                "index": i,
+                                "name": getattr(layer_set, "name", ""),
+                                "visible": getattr(layer_set, "visible", True),
+                            }
+                        )
+            except Exception as e:
+                print(f"Error getting layer info: {e}")
 
             return result
 
