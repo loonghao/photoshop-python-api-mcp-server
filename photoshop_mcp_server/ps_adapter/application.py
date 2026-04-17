@@ -1,6 +1,7 @@
 """Photoshop application adapter."""
 
-from typing import Optional
+import json
+from typing import Any, Optional
 
 import photoshop.api as ps
 from photoshop import Session
@@ -333,3 +334,308 @@ class PhotoshopApp:
                     # Script already has try-catch, just return the error
                     error_msg = str(e2).replace('"', '\\"')
                     return '{"error": "' + error_msg + '", "success": false}'
+
+    @staticmethod
+    def _escape_js_string(value: str) -> str:
+        """Escape Python string value for safe insertion into JavaScript string literals."""
+        return (
+            value.replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+        )
+
+    @staticmethod
+    def _parse_js_result(result: Any) -> dict[str, Any]:
+        """Parse JavaScript execution result into a dictionary when possible."""
+        if isinstance(result, dict):
+            return result
+
+        if isinstance(result, str):
+            try:
+                parsed = json.loads(result)
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+
+            if result.startswith("Error:"):
+                return {"success": False, "error": result}
+
+        return {"success": True, "result": result}
+
+    @staticmethod
+    def _find_group_by_name(container: Any, name: str) -> Any | None:
+        """Find a group recursively by name in a document or group container."""
+        try:
+            for group in container.layerSets:
+                if getattr(group, "name", "") == name:
+                    return group
+                nested = PhotoshopApp._find_group_by_name(group, name)
+                if nested is not None:
+                    return nested
+        except Exception:
+            return None
+        return None
+
+    @staticmethod
+    def _find_direct_group_by_name(container: Any, name: str) -> Any | None:
+        """Find a direct child group by name in a document or group container."""
+        try:
+            for group in container.layerSets:
+                if getattr(group, "name", "") == name:
+                    return group
+        except Exception:
+            return None
+        return None
+
+    @staticmethod
+    def _count_collection(collection: Any) -> int:
+        """Count Photoshop collection items safely."""
+        try:
+            return sum(1 for _ in collection)
+        except Exception:
+            try:
+                return int(getattr(collection, "length", 0))
+            except Exception:
+                return 0
+
+    @staticmethod
+    def _find_layer_by_name(container: Any, name: str) -> Any | None:
+        """Find an art layer recursively by name in a document or group container."""
+        try:
+            for layer in container.artLayers:
+                if getattr(layer, "name", "") == name:
+                    return layer
+
+            for group in container.layerSets:
+                nested = PhotoshopApp._find_layer_by_name(group, name)
+                if nested is not None:
+                    return nested
+        except Exception:
+            return None
+        return None
+
+    def create_group(
+        self,
+        name: str,
+        parent_group_name: str | None = None,
+        if_exists_return_existing: bool = True,
+    ) -> dict[str, Any]:
+        """Create a new group in the active document.
+
+        Args:
+            name: Group name.
+            parent_group_name: Optional parent group name for nested group creation.
+            if_exists_return_existing: If True, returns success for an existing
+                same-name group within the target scope instead of creating a duplicate.
+
+        Returns:
+            dict: Operation result.
+
+        """
+        doc = self.get_active_document()
+        if not doc:
+            return {"success": False, "error": "No active document"}
+
+        target_parent = doc
+        if parent_group_name:
+            target_parent = self._find_group_by_name(doc, parent_group_name)
+            if target_parent is None:
+                return {
+                    "success": False,
+                    "error": f"Parent group not found: {parent_group_name}",
+                }
+
+        existing_group = self._find_direct_group_by_name(target_parent, name)
+        if existing_group is not None and if_exists_return_existing:
+            return {
+                "success": True,
+                "group_name": getattr(existing_group, "name", name),
+                "parent_group_name": parent_group_name,
+                "already_exists": True,
+            }
+
+        try:
+            new_group = target_parent.layerSets.add()
+            new_group.name = name
+            return {
+                "success": True,
+                "group_name": getattr(new_group, "name", name),
+                "parent_group_name": parent_group_name,
+                "already_exists": False,
+            }
+        except Exception as e:
+            # Photoshop may throw COM -2147212704 after applying the action.
+            # Verify the desired state before returning failure.
+            error_text = str(e)
+            if "-2147212704" in error_text:
+                found_group = self._find_direct_group_by_name(target_parent, name)
+                if found_group is not None:
+                    return {
+                        "success": True,
+                        "group_name": getattr(found_group, "name", name),
+                        "parent_group_name": parent_group_name,
+                        "already_exists": False,
+                        "warning": "Recovered from Photoshop COM false-negative (-2147212704).",
+                    }
+
+            return {"success": False, "error": error_text}
+
+    def move_layer_to_group(self, layer_name: str, group_name: str) -> dict[str, Any]:
+        """Move an existing layer into a target group by name.
+
+        Args:
+            layer_name: Name of the layer to move.
+            group_name: Name of the destination group.
+
+        Returns:
+            dict: Operation result.
+
+        """
+        doc = self.get_active_document()
+        if not doc:
+            return {"success": False, "error": "No active document"}
+
+        target_group = self._find_group_by_name(doc, group_name)
+        if target_group is None:
+            return {"success": False, "error": f"Target group not found: {group_name}"}
+
+        target_layer = self._find_layer_by_name(doc, layer_name)
+        if target_layer is None:
+            return {"success": False, "error": f"Layer not found: {layer_name}"}
+
+        try:
+            current_parent = getattr(target_layer, "parent", None)
+            current_parent_name = getattr(current_parent, "name", "")
+            if current_parent_name == group_name:
+                return {
+                    "success": True,
+                    "layer_name": layer_name,
+                    "group_name": group_name,
+                    "already_in_group": True,
+                }
+        except Exception:
+            pass
+
+        try:
+            target_layer.move(target_group, ps.ElementPlacement.PlaceAtBeginning)
+            return {
+                "success": True,
+                "layer_name": layer_name,
+                "group_name": group_name,
+                "already_in_group": False,
+            }
+        except Exception as e:
+            # Photoshop may throw COM -2147212704 after applying the action.
+            # Verify state before returning failure.
+            error_text = str(e)
+            if "-2147212704" in error_text:
+                found_layer = self._find_layer_by_name(doc, layer_name)
+                if found_layer is not None:
+                    try:
+                        parent = getattr(found_layer, "parent", None)
+                        parent_name = getattr(parent, "name", "")
+                        if parent_name == group_name:
+                            return {
+                                "success": True,
+                                "layer_name": layer_name,
+                                "group_name": group_name,
+                                "already_in_group": False,
+                                "warning": "Recovered from Photoshop COM false-negative (-2147212704).",
+                            }
+                    except Exception:
+                        pass
+
+            return {"success": False, "error": error_text}
+
+    def layer_delete(self, layer_name: str) -> dict[str, Any]:
+        """Delete the first matching layer by name.
+
+        Args:
+            layer_name: Layer name to delete.
+
+        Returns:
+            dict: Operation result.
+
+        """
+        doc = self.get_active_document()
+        if not doc:
+            return {"success": False, "error": "No active document"}
+
+        target_layer = self._find_layer_by_name(doc, layer_name)
+        if target_layer is None:
+            return {"success": False, "error": f"Layer not found: {layer_name}"}
+
+        try:
+            if hasattr(target_layer, "delete"):
+                target_layer.delete()
+            else:
+                target_layer.remove()
+            return {"success": True, "layer_name": layer_name}
+        except Exception as e:
+            # If the remove succeeded but COM reported false-negative, verify state.
+            error_text = str(e)
+            if "-2147212704" in error_text:
+                still_exists = self._find_layer_by_name(doc, layer_name) is not None
+                if not still_exists:
+                    return {
+                        "success": True,
+                        "layer_name": layer_name,
+                        "warning": "Recovered from Photoshop COM false-negative (-2147212704).",
+                    }
+            return {"success": False, "error": error_text}
+
+    def group_delete(self, group_name: str, delete_contents: bool = True) -> dict[str, Any]:
+        """Delete the first matching group by name.
+
+        Args:
+            group_name: Group name to delete.
+            delete_contents: If False, refuse deletion when the group is not empty.
+
+        Returns:
+            dict: Operation result.
+
+        """
+        doc = self.get_active_document()
+        if not doc:
+            return {"success": False, "error": "No active document"}
+
+        target_group = self._find_group_by_name(doc, group_name)
+        if target_group is None:
+            return {"success": False, "error": f"Group not found: {group_name}"}
+
+        if not delete_contents:
+            child_group_count = self._count_collection(getattr(target_group, "layerSets", []))
+            child_layer_count = self._count_collection(getattr(target_group, "artLayers", []))
+            if child_group_count > 0 or child_layer_count > 0:
+                return {
+                    "success": False,
+                    "error": "Group is not empty",
+                    "group_name": group_name,
+                    "child_group_count": child_group_count,
+                    "child_layer_count": child_layer_count,
+                }
+
+        try:
+            if hasattr(target_group, "delete"):
+                target_group.delete()
+            else:
+                target_group.remove()
+            return {
+                "success": True,
+                "group_name": group_name,
+                "delete_contents": delete_contents,
+            }
+        except Exception as e:
+            error_text = str(e)
+            if "-2147212704" in error_text:
+                still_exists = self._find_group_by_name(doc, group_name) is not None
+                if not still_exists:
+                    return {
+                        "success": True,
+                        "group_name": group_name,
+                        "delete_contents": delete_contents,
+                        "warning": "Recovered from Photoshop COM false-negative (-2147212704).",
+                    }
+            return {"success": False, "error": error_text}
