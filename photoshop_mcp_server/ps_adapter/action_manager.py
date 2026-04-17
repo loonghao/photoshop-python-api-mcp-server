@@ -86,6 +86,7 @@ class ActionManager:
                 "bit_depth": 0,
                 "layers": [],
                 "layer_sets": [],
+                "layer_tree": [],
                 "channels": [],
                 "path": "",
             }
@@ -150,8 +151,35 @@ class ActionManager:
             except Exception as e:
                 print(f"Error getting document path: {e}")
 
-            # Get layers info would require more complex Action Manager code
-            # This is a simplified implementation
+            # Layer information is easier and more reliable through the DOM API.
+            # This provides accurate flat layer and group lists.
+            try:
+                doc = ps_app.get_active_document()
+                if doc:
+                    for i, layer in enumerate(doc.artLayers):
+                        is_background = bool(getattr(layer, "isBackgroundLayer", False))
+                        if is_background:
+                            continue
+
+                        result["layers"].append(
+                            {
+                                "index": i,
+                                "name": getattr(layer, "name", ""),
+                                "visible": getattr(layer, "visible", True),
+                                "kind": str(getattr(layer, "kind", "Unknown")),
+                            }
+                        )
+
+                    for i, layer_set in enumerate(doc.layerSets):
+                        result["layer_sets"].append(
+                            {
+                                "index": i,
+                                "name": getattr(layer_set, "name", ""),
+                                "visible": getattr(layer_set, "visible", True),
+                            }
+                        )
+            except Exception as e:
+                print(f"Error getting layer info: {e}")
 
             return result
 
@@ -160,6 +188,106 @@ class ActionManager:
 
             tb_text = traceback.format_exc()
             print(f"Error in get_active_document_info: {e}")
+            print(tb_text)
+            return {"success": False, "error": str(e), "detailed_error": tb_text}
+
+    @classmethod
+    def get_document_layer_tree(cls) -> dict[str, Any]:
+        """Get nested layer/group hierarchy for the active document.
+
+        Returns:
+            A dictionary containing a recursive layer tree structure.
+
+        """
+        try:
+            ps_app = PhotoshopApp()
+            app = ps_app.app
+
+            if not hasattr(app, "documents") or not app.documents.length:
+                return {
+                    "success": True,
+                    "error": "No active document",
+                    "no_document": True,
+                    "layer_tree": [],
+                }
+
+            doc = ps_app.get_active_document()
+            if not doc:
+                return {
+                    "success": True,
+                    "error": "No active document",
+                    "no_document": True,
+                    "layer_tree": [],
+                }
+
+            def build_layer_node(layer: Any) -> dict[str, Any] | None:
+                is_background = bool(getattr(layer, "isBackgroundLayer", False))
+                if is_background:
+                    return None
+
+                return {
+                    "type": "layer",
+                    "name": getattr(layer, "name", ""),
+                    "visible": getattr(layer, "visible", True),
+                    "kind": str(getattr(layer, "kind", "Unknown")),
+                }
+
+            def build_group_node(group: Any) -> dict[str, Any]:
+                node = {
+                    "type": "group",
+                    "name": getattr(group, "name", ""),
+                    "visible": getattr(group, "visible", True),
+                    "children": [],
+                }
+
+                try:
+                    for sub_group in group.layerSets:
+                        node["children"].append(build_group_node(sub_group))
+                except Exception:
+                    pass
+
+                try:
+                    for layer in group.artLayers:
+                        layer_node = build_layer_node(layer)
+                        if layer_node is not None:
+                            node["children"].append(layer_node)
+                except Exception:
+                    pass
+
+                return node
+
+            tree = []
+            ungrouped_layers = []
+
+            # Add top-level groups.
+            try:
+                for top_group in doc.layerSets:
+                    tree.append(build_group_node(top_group))
+            except Exception:
+                pass
+
+            # Add top-level layers that are direct children of the document.
+            try:
+                for top_layer in doc.artLayers:
+                    layer_node = build_layer_node(top_layer)
+                    if layer_node is not None:
+                        tree.append(layer_node)
+                        ungrouped_layers.append(layer_node)
+            except Exception:
+                pass
+
+            return {
+                "success": True,
+                "document_name": getattr(doc, "name", ""),
+                "layer_tree": tree,
+                "ungrouped_layers": ungrouped_layers,
+            }
+
+        except Exception as e:
+            import traceback
+
+            tb_text = traceback.format_exc()
+            print(f"Error in get_document_layer_tree: {e}")
             print(tb_text)
             return {"success": False, "error": str(e), "detailed_error": tb_text}
 
