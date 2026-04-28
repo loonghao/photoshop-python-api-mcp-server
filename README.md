@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/loonghao-photoshop-python-api-mcp-server-badge.png)](https://mseep.ai/app/loonghao-photoshop-python-api-mcp-server)
+
 # Photoshop MCP Server
 
 [![PyPI Version](https://img.shields.io/pypi/v/photoshop-mcp-server.svg)](https://pypi.org/project/photoshop-mcp-server/)
