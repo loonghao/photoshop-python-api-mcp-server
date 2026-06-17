@@ -150,8 +150,66 @@ class ActionManager:
             except Exception as e:
                 print(f"Error getting document path: {e}")
 
-            # Get layers info would require more complex Action Manager code
-            # This is a simplified implementation
+            # Get layers info using PhotoshopApp document object
+            try:
+                doc = ps_app.get_active_document()
+                if doc:
+                    # Get art layers
+                    art_layers = []
+                    for i, layer in enumerate(doc.artLayers):
+                        try:
+                            art_layers.append({
+                                "index": i,
+                                "name": layer.name,
+                                "visible": layer.visible,
+                                "kind": str(layer.kind),
+                                "opacity": layer.opacity,
+                                "blending_mode": str(layer.blendMode),
+                            })
+                        except Exception as e:
+                            print(f"Error getting art layer {i}: {e}")
+                    result["layers"] = art_layers
+
+                    # Get layer sets (groups)
+                    layer_sets = []
+                    for i, ls in enumerate(doc.layerSets):
+                        try:
+                            set_layers = []
+                            for j, layer in enumerate(ls.artLayers):
+                                try:
+                                    set_layers.append({
+                                        "index": j,
+                                        "name": layer.name,
+                                        "visible": layer.visible,
+                                        "kind": str(layer.kind),
+                                    })
+                                except Exception:
+                                    pass
+                            layer_sets.append({
+                                "index": i,
+                                "name": ls.name,
+                                "visible": ls.visible,
+                                "layers": set_layers,
+                            })
+                        except Exception as e:
+                            print(f"Error getting layer set {i}: {e}")
+                    result["layer_sets"] = layer_sets
+
+                    # Get channels
+                    channels = []
+                    for i, ch in enumerate(doc.channels):
+                        try:
+                            channels.append({
+                                "index": i,
+                                "name": ch.name,
+                                "kind": str(ch.kind),
+                                "visible": ch.visible,
+                            })
+                        except Exception as e:
+                            print(f"Error getting channel {i}: {e}")
+                    result["channels"] = channels
+            except Exception as e:
+                print(f"Error getting layers/layer_sets/channels: {e}")
 
             return result
 

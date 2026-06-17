@@ -225,111 +225,89 @@ class PhotoshopApp:
         Returns:
             str: The result of the JavaScript execution.
 
+        Note:
+            Photoshop uses ExtendScript (ECMAScript 3) which lacks a native
+            JSON object. A JSON.stringify polyfill is automatically injected.
+
+            comtypes requires all 3 arguments for doJavaScript to dispatch
+            correctly. Passing only the script string triggers COM error
+            -2147352567 on most Photoshop versions.
+
         """
-        # Ensure script returns a valid JSON string
+        # Ensure script ends with semicolon
         if not script.strip().endswith(";"):
             script = script.rstrip() + ";"
 
-        # Make sure script returns a value
-        if "return " not in script and "JSON.stringify" not in script:
-            script = script + "\n'success';"  # Add a default return value
+        # Inject JSON polyfill for ExtendScript (ES3 has no native JSON object)
+        json_polyfill = (
+            "if(typeof JSON==='undefined'){JSON={stringify:function(v){"
+            "if(v===null)return'null';"
+            "if(typeof v==='number'||typeof v==='boolean')return String(v);"
+            "if(typeof v==='string')return'\"'+v.replace(/\\\\/g,'\\\\\\\\').replace(/\"/g,'\\\\\"')+'\"';"
+            "if(v.constructor===Array){var a=[];for(var i=0;i<v.length;i++)a.push(JSON.stringify(v[i]));return'['+a.join(',')+']';}"
+            "if(typeof v==='object'){var a=[];for(var k in v)if(v.hasOwnProperty(k))a.push('\"'+k+'\":'+JSON.stringify(v[k]));return'{'+a.join(',')+'}';}"
+            "return String(v);}}}"
+        )
+        full_script = json_polyfill + "\n" + script
 
         try:
-            # Try to execute with default parameters
-            result = self.app.doJavaScript(script)
-            if result:
-                return result
-            return '{"success": true}'  # Return a valid JSON if no result
+            # comtypes requires all 3 arguments for doJavaScript to work correctly.
+            # Arguments: (script, arguments_array_or_None, execution_mode)
+            # execution_mode: 1 = psNormalMode
+            result = self.app.doJavaScript(full_script, None, 1)
+            if result is not None:
+                return str(result)
+            return '{"success": true}'
         except Exception as e:
-            print(f"Error executing JavaScript (attempt 1): {e}")
+            error_str = str(e)
+            print(f"Error executing JavaScript: {e}")
 
-            # Check for specific COM error code -2147212704
-            if "-2147212704" in str(e):
-                print("Detected COM error -2147212704, trying alternative approach")
-                # This is often a dialog-related error, try with a safer script
-                safer_script = f"""
-                try {{
-                    // Disable dialogs
-                    var originalDialogMode = app.displayDialogs;
-                    app.displayDialogs = DialogModes.NO;
-
-                    // Execute the original script
-                    var result = (function() {{
-                        {script}
-                    }})();
-
-                    // Restore dialog mode
-                    app.displayDialogs = originalDialogMode;
-
-                    return result;
-                }} catch(e) {{
-                    return JSON.stringify({{
-                        "error": e.toString(),
-                        "success": false
-                    }});
-                }}
-                """
+            # For dialog-related COM errors, retry with dialogs disabled
+            if "-2147212704" in error_str:
+                safer_script = (
+                    "var _origDM = app.displayDialogs;"
+                    "app.displayDialogs = DialogModes.NO;"
+                    "var _r = (function(){" + full_script + "})();"
+                    "app.displayDialogs = _origDM;"
+                    "_r;"
+                )
                 try:
-                    return self.app.doJavaScript(safer_script, None, 1)
-                except Exception as e_safer:
-                    print(f"Safer script approach failed: {e_safer}")
-                    # Continue to other fallbacks
+                    result = self.app.doJavaScript(safer_script, None, 1)
+                    if result is not None:
+                        return str(result)
+                    return '{"success": true}'
+                except Exception as e2:
+                    print(f"Retry with DialogModes.NO also failed: {e2}")
 
-            try:
-                # Try with explicit parameters
-                # 1 = PsJavaScriptExecutionMode.psNormalMode
-                result = self.app.doJavaScript(script, None, 1)
-                if result:
-                    return result
-                return '{"success": true}'  # Return a valid JSON if no result
-            except Exception as e2:
-                print(f"Error executing JavaScript (attempt 2): {e2}")
-
-                # Try with a different execution mode
+            # Wrap in try-catch as last resort
+            if "try {" not in full_script:
+                wrapped = (
+                    json_polyfill
+                    + "try{"
+                    "var _origDM = app.displayDialogs;"
+                    "app.displayDialogs = DialogModes.NO;"
+                    "var _r = (function(){" + full_script + "})();"
+                    "app.displayDialogs = _origDM;"
+                    "_r;"
+                    "}catch(e){"
+                    "JSON.stringify({error: e.toString(), success: false});"
+                    "}"
+                )
                 try:
-                    # 2 = PsJavaScriptExecutionMode.psInteractiveMode
-                    result = self.app.doJavaScript(script, None, 2)
-                    if result:
-                        return result
-                    return '{"success": true}'  # Return a valid JSON if no result
-                except Exception as e3:
-                    print(f"Error executing JavaScript (attempt 3): {e3}")
+                    result = self.app.doJavaScript(wrapped, None, 1)
+                    if result is not None:
+                        return str(result)
+                    return '{"success": true}'
+                except Exception as e_final:
+                    print(f"All JavaScript execution attempts failed: {e_final}")
+                    return (
+                        '{"error": "'
+                        + str(e_final).replace('"', '\\"')
+                        + '", "success": false}'
+                    )
 
-                # Last resort: wrap script in a try-catch block if not already wrapped
-                if "try {" not in script:
-                    wrapped_script = f"""
-                    try {{
-                        // Disable dialogs
-                        var originalDialogMode = app.displayDialogs;
-                        app.displayDialogs = DialogModes.NO;
-
-                        // Execute the original script
-                        var result = (function() {{
-                            {script}
-                        }})();
-
-                        // Restore dialog mode
-                        app.displayDialogs = originalDialogMode;
-
-                        return result;
-                    }} catch(e) {{
-                        return JSON.stringify({{
-                            "error": e.toString(),
-                            "success": false
-                        }});
-                    }}
-                    """
-                    try:
-                        result = self.app.doJavaScript(wrapped_script, None, 1)
-                        if result:
-                            return result
-                        return '{"success": true}'  # Return a valid JSON if no result
-                    except Exception as e4:
-                        print(f"Error executing JavaScript (final attempt): {e4}")
-                        # Return a valid JSON with error information
-                        error_msg = str(e4).replace('"', '\\"')
-                        return '{"error": "' + error_msg + '", "success": false}'
-                else:
-                    # Script already has try-catch, just return the error
-                    error_msg = str(e2).replace('"', '\\"')
-                    return '{"error": "' + error_msg + '", "success": false}'
+            return (
+                '{"error": "'
+                + error_str.replace('"', '\\"')
+                + '", "success": false}'
+            )
