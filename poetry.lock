@@ -580,14 +580,14 @@ files = [
 
 [[package]]
 name = "photoshop-python-api"
-version = "0.24.1"
+version = "0.24.2"
 description = "Python API for Photoshop."
 optional = false
 python-versions = "<4.0,>=3.8"
 groups = ["main"]
 files = [
-    {file = "photoshop_python_api-0.24.1-py3-none-any.whl", hash = "sha256:3e72d99dd647f37cc17e5bd86b8d882b1dce2a39ff9157a46a4e68d120073037"},
-    {file = "photoshop_python_api-0.24.1.tar.gz", hash = "sha256:064e901a76010e2bc29a45e35a6baab7c91aebd8e629c3456bdb19f751619b28"},
+    {file = "photoshop_python_api-0.24.2-py3-none-any.whl", hash = "sha256:8d3d37010b033fa8ccc185cf40262ff900899488d4fc5a5bdce6de8d3e077570"},
+    {file = "photoshop_python_api-0.24.2.tar.gz", hash = "sha256:c8a68fa7dcf746602db143a789fc5821cac36b6dd3be12d202708987691b6c4b"},
 ]
 
 [package.dependencies]
