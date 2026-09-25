@@ -29,8 +29,6 @@ on:
       - '.flake8'
       - '.pylintrc'
       - 'renovate.json'
-  release:
-    types: [published]
   pull_request:
     branches: [ main ]
     paths-ignore:

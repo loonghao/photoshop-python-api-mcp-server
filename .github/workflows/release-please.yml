@@ -1,0 +1,181 @@
+name: Release Please
+
+# Conventional commits drive the version: a push to main updates the
+# "chore: release vX.Y.Z" PR, and merging it creates the tag + GitHub Release.
+# The existing release/publish workflow then reacts to that tag.
+#
+# This repo ships more than a pure wheel (native binaries / platform archives),
+# so release-please stays in its own workflow and keeps the build matrix that
+# already works. The tag has to be created with a PAT for that to fire: GitHub
+# never starts a workflow from a tag created with the default GITHUB_TOKEN.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-please-main
+  cancel-in-progress: false
+
+jobs:
+  # ── Guard: only ask release-please for a release when there is something ───
+  # to release. release-please treats every commit on main as release input, so
+  # a workflow that re-generates files on the branch (lock sync, formatting)
+  # would otherwise keep the release PR alive on chore/ci/docs commits alone.
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      releasable: ${{ steps.check.outputs.releasable }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check for releasable commits since the last release tag
+        id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+
+          # A manual run is always allowed to proceed.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "workflow_dispatch: skipping the releasable-commit gate"
+            echo "releasable=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Only feat/fix/perf/refactor/revert and BREAKING CHANGE: move the
+          # version here; chore/ci/docs/test/style/build are release-neutral.
+          # The script fails open, so a broken range never suppresses a release.
+          python3 - <<'PY'
+          """Decide whether a commit window contains something worth releasing.
+
+          The release workflow uses this to keep release-please from cutting a release
+          for commits that do not move the product. release-please's own rule is blunt:
+          in ``determineReleaseType`` anything that is neither breaking nor a ``feat``
+          falls through to a patch bump, so a ``docs:`` or ``chore:`` commit alone is
+          enough to produce a release. That matters here because any automation that
+          regenerates files on the release branch would otherwise keep the release PR
+          alive.
+
+          The gate deliberately fails open: if the git range cannot be resolved the
+          script reports ``releasable=true`` so a release is never silently suppressed.
+
+          Input and output go through the environment (``GITHUB_OUTPUT``) rather than
+          argv so the body can be inlined into a workflow step unchanged.
+          """
+
+          # Import built-in modules
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          # Only these conventional-commit types are treated as release-worthy. A
+          # ``BREAKING CHANGE:`` footer counts too, whatever the type of the commit.
+          RELEASABLE_PATTERN = re.compile(
+              r"^(feat|fix|perf|refactor|revert)(\([^)]*\))?!?:|^BREAKING CHANGE:",
+              re.MULTILINE,
+          )
+
+          TAG_PATTERN = "v*"
+
+
+          def git(*args):
+              """Run git and return (returncode, stdout)."""
+              result = subprocess.run(["git", *args], capture_output=True, text=True)
+              return result.returncode, result.stdout
+
+
+          def is_releasable(commit_text):
+              """Return True when a commit window contains at least one release-worthy commit.
+
+              ``commit_text`` is the concatenated ``%s%n%b`` (subject plus body) of every
+              commit in the window.
+              """
+              return bool(RELEASABLE_PATTERN.search(commit_text or ""))
+
+
+          def last_release_tag():
+              """Return the most recent ``v*`` tag reachable from HEAD, or None."""
+              code, out = git("describe", "--tags", "--match", TAG_PATTERN, "--abbrev=0")
+              if code != 0:
+                  return None
+              return out.strip() or None
+
+
+          def commit_window(range_spec):
+              """Return the combined subjects and bodies of the commits in a git range."""
+              code, out = git("log", "--no-merges", "--format=%s%n%b", range_spec)
+              if code != 0:
+                  raise RuntimeError(f"git log failed for range {range_spec!r}")
+              return out
+
+
+          def resolve_range():
+              """Return a git range covering everything since the last ``v*`` tag."""
+              tag = last_release_tag()
+              return f"{tag}..HEAD" if tag else "HEAD"
+
+
+          def decide(range_spec=None):
+              """Return True when the window should be released.
+
+              With no explicit range the window is everything since the last ``v*`` tag,
+              or the whole history when the repo has no such tag yet.
+              """
+              return is_releasable(commit_window(range_spec or resolve_range()))
+
+
+          def emit(releasable):
+              """Print the result and append it to $GITHUB_OUTPUT when one is set."""
+              line = f"releasable={str(releasable).lower()}"
+              print(line)
+              output = os.environ.get("GITHUB_OUTPUT")
+              if output:
+                  with Path(output).open("a", encoding="utf-8") as handle:
+                      handle.write(f"{line}\n")
+
+
+          def main():
+              """Return 0 always: this gate must never fail the workflow it guards."""
+              try:
+                  releasable = decide()
+              except (OSError, RuntimeError, ValueError) as error:
+                  # Fail open, but say why.
+                  print(f"::error::{error}")
+                  print("Failing open: treating the window as releasable")
+                  releasable = True
+              emit(releasable)
+              return 0
+
+
+          if __name__ == "__main__":
+              sys.exit(main())
+          PY
+
+  release-please:
+    needs: [preflight]
+    if: needs.preflight.outputs.releasable == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # tag + GitHub Release
+      pull-requests: write # the release PR itself
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          # A PAT is required: with GITHUB_TOKEN the tag this action creates
+          # cannot trigger the release workflow, and the release PR would carry
+          # no CI status either.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.PERSONAL_ACCESS_TOKEN }}
+          target-branch: main
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
