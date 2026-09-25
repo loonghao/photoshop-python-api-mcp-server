@@ -54,15 +54,6 @@ python_functions = ["test_*"]
 source = ["photoshop_mcp_server"]
 branch = true
 
-[tool.commitizen]
-name = "cz_conventional_commits"
-version = "0.1.11"
-tag_format = "v$version"
-version_files = [
-    "pyproject.toml:version",
-    "photoshop_mcp_server/app.py:__version__",
-]
-
 [tool.ruff]
 line-length = 120
 target-version = "py310"
