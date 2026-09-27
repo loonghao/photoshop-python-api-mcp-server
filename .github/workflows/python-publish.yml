@@ -21,13 +21,10 @@ on:
       - 'CODE_OF_CONDUCT.md'
       - 'CONTRIBUTING.md'
       - '**.rst'
-      - '.hound.yml'
       - '.gitignore'
       - '.gitmodules'
       - '.coveragerc'
       - 'codecov.yml'
-      - '.flake8'
-      - '.pylintrc'
       - 'renovate.json'
   pull_request:
     branches: [ main ]
@@ -42,13 +39,10 @@ on:
       - 'CODE_OF_CONDUCT.md'
       - 'CONTRIBUTING.md'
       - '**.rst'
-      - '.hound.yml'
       - '.gitignore'
       - '.gitmodules'
       - '.coveragerc'
       - 'codecov.yml'
-      - '.flake8'
-      - '.pylintrc'
       - 'renovate.json'
   workflow_dispatch:
     inputs:
