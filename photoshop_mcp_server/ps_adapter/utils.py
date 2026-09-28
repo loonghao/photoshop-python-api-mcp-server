@@ -12,6 +12,34 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fi
 T = TypeVar("T")
 
 
+def to_float(value: Any, default: float = 0.0) -> float:
+    """Convert a Photoshop measurement into a plain float.
+
+    Photoshop's COM interface is late-bound, so a measurement property such as
+    ``Document.width`` does not have a stable Python type across Photoshop
+    builds: some return a ``UnitValue`` object exposing the number as ``.value``,
+    others return a plain ``float`` directly. Reading ``.value`` unconditionally
+    raises ``AttributeError: 'float' object has no attribute 'value'`` on the
+    builds that return a float.
+
+    Args:
+        value: The raw value returned by Photoshop. Accepts a ``UnitValue``-like
+            object (anything exposing a numeric ``.value``), a number, or a
+            numeric string. ``None`` and non-convertible values yield ``default``.
+        default: Value returned when the measurement cannot be converted.
+
+    Returns:
+        float: The measurement as a float, or ``default`` if unconvertible.
+
+    """
+    raw = getattr(value, "value", value)
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        logger.warning(f"Could not convert {raw!r} to float, using default {default!r}")
+        return default
+
+
 def with_retry(
     max_attempts: int = 3, wait_seconds: float = 2.0
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:

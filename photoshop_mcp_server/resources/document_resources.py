@@ -1,6 +1,7 @@
 """Document-related MCP resources."""
 
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
+from photoshop_mcp_server.ps_adapter.utils import to_float
 
 
 def register(mcp):
@@ -40,8 +41,10 @@ def register(mcp):
 
         return {
             "name": doc.name,
-            "width": doc.width.value,
-            "height": doc.height.value,
+            # `doc.width` / `doc.height` are either a UnitValue (with `.value`)
+            # or a plain float depending on the Photoshop build.
+            "width": to_float(getattr(doc, "width", None)),
+            "height": to_float(getattr(doc, "height", None)),
             "resolution": doc.resolution,
             "layers_count": len(doc.artLayers),
         }
