@@ -6,8 +6,15 @@ name: Release Please
 #
 # This repo ships more than a pure wheel (native binaries / platform archives),
 # so release-please stays in its own workflow and keeps the build matrix that
-# already works. The tag has to be created with a PAT for that to fire: GitHub
-# never starts a workflow from a tag created with the default GITHUB_TOKEN.
+# already works.
+#
+# No PAT is used. GitHub never starts a workflow from a tag pushed with the
+# default GITHUB_TOKEN, so instead of waiting for that tag to trigger the
+# publish pipeline, this workflow calls the pipeline directly with `uses:` when
+# release-please reports a release. A reusable-workflow call runs as part of
+# this run rather than as a newly triggered run, which is why it works with
+# GITHUB_TOKEN where a tag push would not - and it means a PAT silently
+# expiring can no longer stall releases.
 
 on:
   push:
@@ -165,17 +172,39 @@ jobs:
     needs: [preflight]
     if: needs.preflight.outputs.releasable == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     permissions:
       contents: write # tag + GitHub Release
       pull-requests: write # the release PR itself
+      id-token: write # passed through to the publish workflow for PyPI trusted publishing
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
         with:
-          # A PAT is required: with GITHUB_TOKEN the tag this action creates
-          # cannot trigger the release workflow, and the release PR would carry
-          # no CI status either.
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.PERSONAL_ACCESS_TOKEN }}
+          # GITHUB_TOKEN, not a PAT. A PAT was only ever needed because a tag
+          # pushed with GITHUB_TOKEN cannot start another workflow; the `publish`
+          # job below calls the publish pipeline directly instead. Depending on
+          # a PAT here means an expired token silently stops every release,
+          # which is exactly what happened: every run of this workflow failed
+          # with "Bad credentials" and the tag never moved past v0.1.11.
+          token: ${{ secrets.GITHUB_TOKEN }}
           target-branch: main
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # ── Publish ────────────────────────────────────────────────────────────────
+  # The tag release-please just pushed cannot start a workflow on its own, so
+  # the build and publish pipeline is called here. A reusable-workflow call is
+  # part of this run, not a new triggered run, so GITHUB_TOKEN is enough.
+  publish:
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created == 'true'
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/python-publish.yml
+    with:
+      tag_name: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit
