@@ -244,8 +244,10 @@ class PhotoshopApp:
             "if(v===null)return'null';"
             "if(typeof v==='number'||typeof v==='boolean')return String(v);"
             "if(typeof v==='string')return'\"'+v.replace(/\\\\/g,'\\\\\\\\').replace(/\"/g,'\\\\\"')+'\"';"
-            "if(v.constructor===Array){var a=[];for(var i=0;i<v.length;i++)a.push(JSON.stringify(v[i]));return'['+a.join(',')+']';}"
-            "if(typeof v==='object'){var a=[];for(var k in v)if(v.hasOwnProperty(k))a.push('\"'+k+'\":'+JSON.stringify(v[k]));return'{'+a.join(',')+'}';}"
+            "if(v.constructor===Array){var a=[];for(var i=0;i<v.length;i++)"
+            "a.push(JSON.stringify(v[i]));return'['+a.join(',')+']';}"
+            "if(typeof v==='object'){var a=[];for(var k in v)if(v.hasOwnProperty(k))"
+            "a.push('\"'+k+'\":'+JSON.stringify(v[k]));return'{'+a.join(',')+'}';}"
             "return String(v);}}}"
         )
         full_script = json_polyfill + "\n" + script
@@ -282,8 +284,7 @@ class PhotoshopApp:
             # Wrap in try-catch as last resort
             if "try {" not in full_script:
                 wrapped = (
-                    json_polyfill
-                    + "try{"
+                    json_polyfill + "try{"
                     "var _origDM = app.displayDialogs;"
                     "app.displayDialogs = DialogModes.NO;"
                     "var _r = (function(){" + full_script + "})();"
@@ -307,7 +308,5 @@ class PhotoshopApp:
                     )
 
             return (
-                '{"error": "'
-                + error_str.replace('"', '\\"')
-                + '", "success": false}'
+                '{"error": "' + error_str.replace('"', '\\"') + '", "success": false}'
             )
