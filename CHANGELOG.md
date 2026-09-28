@@ -14,6 +14,7 @@
 * **ci:** drop package-name so release-please tags merged release PRs ([fa0ec37](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/fa0ec37367cc664dc3ca2df6d23aa025f6a2d4a7))
 * **ci:** publish release outputs when called by Release Please ([f23dddd](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/f23ddddc2c9cd42da81a8608709080b48591a76f))
 * handle UnitValue and float document dimensions ([863af0a](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/863af0aaa7aae211423bd79bac88441444315750))
+* register and document the execute_jsx tool ([8dc41d5](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/8dc41d585a16470d6d2e8ba29c1b32fb88c74dc9))
 
 ## [0.1.12](https://github.com/loonghao/photoshop-python-api-mcp-server/compare/v0.1.11...v0.1.12) (2026-09-28)
 
