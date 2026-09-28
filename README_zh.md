@@ -103,6 +103,39 @@ uv install photoshop-mcp-server
 - **文档工具**：创建、打开和保存文档
 - **图层工具**：创建文本图层、纯色图层等
 - **会话工具**：获取有关 Photoshop 会话、活动文档、选择的信息
+- **脚本工具**：通过 `photoshop_execute_jsx` 执行任意 Photoshop JavaScript（JSX）
+
+### `photoshop_execute_jsx`
+
+通用逃生舱：可运行任意 Photoshop JavaScript（ExtendScript/JSX）片段，因此能触达上面专用工具未覆盖的
+Photoshop API（通道、路径、历史记录、滤镜、自定义自动化、批处理等）。
+
+- **支持的脚本**：当前 Photoshop 版本可接受的任意 Photoshop JavaScript。Photoshop 的 ExtendScript 引擎基于
+  ECMAScript 3，请只使用 ES3 语法（`var`，不要用箭头函数、`let`/`const`）。工具会自动注入 `JSON.stringify`
+  polyfill，因此即使引擎没有原生 `JSON` 对象，`JSON.stringify(...)` 依然可用。
+- **脚本形式**：以单个字符串传入脚本正文。可用 `return` 显式返回值，也可以把最后一个表达式作为结果。
+- **返回值**：成功为 `{ "success": true, "result": <脚本输出> }`；失败为
+  `{ "success": false, "error": <错误信息> }`。脚本在 Photoshop 内部抛错、以及完全连不上 Photoshop，
+  两种情况都会返回 `success: false`，调用方无需解析返回内容即可区分成功与失败。
+
+示例：
+
+```javascript
+// 统计活动文档中的普通图层数量
+app.activeDocument.artLayers.length;
+```
+
+```javascript
+// 以 JSON 形式获取所有图层名称
+var doc = app.activeDocument;
+var names = [];
+for (var i = 0; i < doc.artLayers.length; i++) {
+    names.push(doc.artLayers[i].name);
+}
+JSON.stringify(names);
+```
+
+> **注意**：脚本以与 Photoshop 界面相同的权限运行，可能修改或破坏活动文档。执行破坏性自动化前请先保存。
 
 ## AI 助手提示词示例
 
