@@ -207,4 +207,5 @@ jobs:
     uses: ./.github/workflows/python-publish.yml
     with:
       tag_name: ${{ needs.release-please.outputs.tag_name }}
+      publish_release: true
     secrets: inherit

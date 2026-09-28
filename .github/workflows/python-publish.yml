@@ -58,8 +58,18 @@ on:
         description: 'Tag being released, e.g. v0.1.12'
         required: true
         type: string
+      publish_release:
+        description: 'Attach build outputs to the release and publish them to PyPI'
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
+      tag_name:
+        description: 'Tag to publish, e.g. v0.1.12. Leave empty to build and test only.'
+        required: false
+        default: ''
+        type: string
       fast-mode:
         description: 'Skip building wheels and only run tests'
         required: false
@@ -127,7 +137,11 @@ jobs:
   prepare-release:
     name: Prepare Release
     needs: [build-and-test]
-    if: github.event_name == 'workflow_call' || github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    # github.event_name is the CALLER's event inside a reusable workflow, so
+    # 'workflow_call' never matches here - when Release Please calls this file
+    # the event is 'push' on refs/heads/main. The explicit publish_release input
+    # is what actually signals "this is a real release".
+    if: inputs.publish_release || inputs.tag_name != '' || github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: windows-latest
     permissions:
       contents: write
@@ -185,7 +199,7 @@ jobs:
   publish-to-pypi:
     name: Publish to PyPI
     needs: [prepare-release]
-    if: github.event_name == 'workflow_call' || github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    if: inputs.publish_release || inputs.tag_name != '' || github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: ubuntu-latest
     permissions:
       id-token: write
