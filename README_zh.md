@@ -114,8 +114,9 @@ Photoshop API（通道、路径、历史记录、滤镜、自定义自动化、�
   ECMAScript 3，请只使用 ES3 语法（`var`，不要用箭头函数、`let`/`const`）。工具会自动注入 `JSON.stringify`
   polyfill，因此即使引擎没有原生 `JSON` 对象，`JSON.stringify(...)` 依然可用。
 - **脚本形式**：以单个字符串传入脚本正文。可用 `return` 显式返回值，也可以把最后一个表达式作为结果。
-- **返回值**：成功为 `{ "success": true, "result": <脚本输出> }`；脚本抛错或无法连接 Photoshop 时为
-  `{ "success": false, "error": <错误信息> }`。
+- **返回值**：成功为 `{ "success": true, "result": <脚本输出> }`；失败为
+  `{ "success": false, "error": <错误信息> }`。脚本在 Photoshop 内部抛错、以及完全连不上 Photoshop，
+  两种情况都会返回 `success: false`，调用方无需解析返回内容即可区分成功与失败。
 
 示例：
 

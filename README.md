@@ -117,8 +117,10 @@ filters, custom automation, batch operations, ...).
   even though the engine has no native `JSON` object.
 - **Script type**: pass the script body as a single string. Return a value with an explicit `return`
   statement, or leave the last expression as the result.
-- **Return value**: `{ "success": true, "result": <script output> }`, or `{ "success": false, "error": <message> }`
-  when the script throws or Photoshop cannot be reached.
+- **Return value**: `{ "success": true, "result": <script output> }` on success, and
+  `{ "success": false, "error": <message> }` on failure. A script that throws inside Photoshop and
+  a Photoshop instance that cannot be reached at all both report `success: false`, so callers never
+  have to inspect the payload to tell the two apart.
 
 Examples:
 

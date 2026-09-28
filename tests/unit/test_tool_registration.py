@@ -11,12 +11,14 @@ tool module cannot be registered without being declared, and so
 
 import asyncio
 import importlib
+import json
 import pkgutil
 
 import pytest
 from mcp.server.fastmcp import FastMCP
 
 import photoshop_mcp_server.tools as tools_package
+import photoshop_mcp_server.tools.script_tools as script_tools
 from photoshop_mcp_server import registry
 from photoshop_mcp_server.server import create_server
 
@@ -55,6 +57,43 @@ def clean_registry():
 def _list_tool_names(server):
     """Return the set of tool names exposed by a FastMCP server."""
     return {tool.name for tool in asyncio.run(server.list_tools())}
+
+
+class FakePhotoshopApp:
+    """Stand-in for ``PhotoshopApp`` that returns a canned script payload.
+
+    Only ``execute_javascript`` is faked; every other layer (tool registration,
+    the ``execute_jsx`` closure, FastMCP dispatch) is the real production code.
+    """
+
+    def __init__(self, result):
+        self._result = result
+        self.scripts = []
+
+    def execute_javascript(self, script):
+        self.scripts.append(script)
+        return self._result
+
+
+def _call_execute_jsx(monkeypatch, app_factory, script="app.activeDocument.name;"):
+    """Run the registered ``execute_jsx`` tool against a fake host.
+
+    Args:
+        monkeypatch: The pytest monkeypatch fixture.
+        app_factory: Callable returning the fake host (or raising).
+        script: The JavaScript body to execute.
+
+    Returns:
+        dict: The decoded tool result.
+
+    """
+    monkeypatch.setattr(script_tools, "PhotoshopApp", app_factory)
+
+    server = create_server()
+    content = asyncio.run(server.call_tool("photoshop_execute_jsx", {"script": script}))
+
+    # FastMCP serialises the dict return value as JSON text content.
+    return json.loads(content[0].text)
 
 
 class TestToolModuleConsistency:
@@ -110,3 +149,54 @@ class TestRegisteredToolSurface:
             "photoshop_get_session_info",
             "photoshop_execute_jsx",
         } <= tool_names
+
+
+class TestExecuteJsxFailureContract:
+    """A failed script or an unreachable host must report ``success: false``.
+
+    PhotoshopApp.execute_javascript never raises for a script that throws inside
+    Photoshop: it returns the failure as a JSON string. Wrapping that string in
+    ``{"success": true, "result": ...}`` would tell LLM callers the script worked
+    and let the error string be consumed as if it were script output.
+    """
+
+    def test_script_failure_is_reported_as_failure(self, clean_registry, monkeypatch):
+        """A failure payload from the COM layer is surfaced, not wrapped."""
+        result = _call_execute_jsx(
+            monkeypatch,
+            lambda: FakePhotoshopApp('{"error": "boom", "success": false}'),
+        )
+
+        assert result == {"success": False, "error": "boom"}
+
+    def test_unreachable_photoshop_returns_failure(self, clean_registry, monkeypatch):
+        """A PhotoshopApp that cannot be constructed is reported, not raised."""
+
+        def _explode():
+            raise OSError("Photoshop is not available")
+
+        result = _call_execute_jsx(monkeypatch, _explode)
+
+        assert result == {
+            "success": False,
+            "error": "Photoshop is not available",
+        }
+
+    def test_successful_script_is_still_reported_as_success(
+        self, clean_registry, monkeypatch
+    ):
+        """Ordinary script output keeps the success shape."""
+        result = _call_execute_jsx(monkeypatch, lambda: FakePhotoshopApp("42"))
+
+        assert result == {"success": True, "result": "42"}
+
+    def test_error_keyed_json_output_is_not_mistaken_for_failure(
+        self, clean_registry, monkeypatch
+    ):
+        """Script output that happens to contain an error key stays a success."""
+        result = _call_execute_jsx(
+            monkeypatch,
+            lambda: FakePhotoshopApp('{"error": null, "success": true}'),
+        )
+
+        assert result == {"success": True, "result": '{"error": null, "success": true}'}
