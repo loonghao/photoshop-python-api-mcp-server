@@ -103,6 +103,42 @@ The server provides various tools for controlling Photoshop:
 - **Document Tools**: Create, open, and save documents
 - **Layer Tools**: Create text layers, solid color layers, etc.
 - **Session Tools**: Get information about Photoshop session, active document, selection
+- **Script Tools**: Run arbitrary Photoshop JavaScript (JSX) with `photoshop_execute_jsx`
+
+### `photoshop_execute_jsx`
+
+A universal escape hatch: it runs any Photoshop JavaScript (ExtendScript/JSX) snippet, so you can reach
+parts of the Photoshop API that the dedicated tools above do not cover (channels, paths, history states,
+filters, custom automation, batch operations, ...).
+
+- **Supported scripts**: any Photoshop JavaScript the running Photoshop version accepts. Photoshop's
+  ExtendScript engine is based on ECMAScript 3, so stick to ES3 syntax (`var`, no arrow functions, no
+  `let`/`const`). A `JSON.stringify` polyfill is injected automatically, so `JSON.stringify(...)` works
+  even though the engine has no native `JSON` object.
+- **Script type**: pass the script body as a single string. Return a value with an explicit `return`
+  statement, or leave the last expression as the result.
+- **Return value**: `{ "success": true, "result": <script output> }`, or `{ "success": false, "error": <message> }`
+  when the script throws or Photoshop cannot be reached.
+
+Examples:
+
+```javascript
+// Count art layers in the active document
+app.activeDocument.artLayers.length;
+```
+
+```javascript
+// Get every layer name as JSON
+var doc = app.activeDocument;
+var names = [];
+for (var i = 0; i < doc.artLayers.length; i++) {
+    names.push(doc.artLayers[i].name);
+}
+JSON.stringify(names);
+```
+
+> **Note**: The script runs with the same privileges as the Photoshop UI, so it can modify or destroy the
+> active document. Save your work before running destructive automation.
 
 ## Example Prompts for AI Assistants
 
