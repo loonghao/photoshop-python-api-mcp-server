@@ -4,6 +4,15 @@
 
 - redirect logging output from stdout to stderr
 
+## [0.1.12](https://github.com/loonghao/photoshop-python-api-mcp-server/compare/v0.1.11...v0.1.12) (2026-09-28)
+
+
+### Bug Fixes
+
+* **ci:** cut releases with GITHUB_TOKEN instead of an expired PAT ([a17a7ac](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/a17a7aca77337ebc9824e50d0bdce6c7eb947cd2))
+* **ci:** drop pull-requests permission from reusable publish workflow ([142fdd7](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/142fdd7a42ee0f4602dde8684850bbe956638ad5))
+* populate layers in get_active_document_info and add execute_jsx tool ([82de08d](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/82de08d0650726dee351a44e30219c7c909657de))
+
 ## v0.1.10 (2025-10-17)
 
 ### Fix
