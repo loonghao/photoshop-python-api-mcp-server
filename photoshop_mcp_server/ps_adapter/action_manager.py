@@ -158,14 +158,16 @@ class ActionManager:
                     art_layers = []
                     for i, layer in enumerate(doc.artLayers):
                         try:
-                            art_layers.append({
-                                "index": i,
-                                "name": layer.name,
-                                "visible": layer.visible,
-                                "kind": str(layer.kind),
-                                "opacity": layer.opacity,
-                                "blending_mode": str(layer.blendMode),
-                            })
+                            art_layers.append(
+                                {
+                                    "index": i,
+                                    "name": layer.name,
+                                    "visible": layer.visible,
+                                    "kind": str(layer.kind),
+                                    "opacity": layer.opacity,
+                                    "blending_mode": str(layer.blendMode),
+                                }
+                            )
                         except Exception as e:
                             print(f"Error getting art layer {i}: {e}")
                     result["layers"] = art_layers
@@ -177,20 +179,24 @@ class ActionManager:
                             set_layers = []
                             for j, layer in enumerate(ls.artLayers):
                                 try:
-                                    set_layers.append({
-                                        "index": j,
-                                        "name": layer.name,
-                                        "visible": layer.visible,
-                                        "kind": str(layer.kind),
-                                    })
+                                    set_layers.append(
+                                        {
+                                            "index": j,
+                                            "name": layer.name,
+                                            "visible": layer.visible,
+                                            "kind": str(layer.kind),
+                                        }
+                                    )
                                 except Exception:
                                     pass
-                            layer_sets.append({
-                                "index": i,
-                                "name": ls.name,
-                                "visible": ls.visible,
-                                "layers": set_layers,
-                            })
+                            layer_sets.append(
+                                {
+                                    "index": i,
+                                    "name": ls.name,
+                                    "visible": ls.visible,
+                                    "layers": set_layers,
+                                }
+                            )
                         except Exception as e:
                             print(f"Error getting layer set {i}: {e}")
                     result["layer_sets"] = layer_sets
@@ -199,12 +205,14 @@ class ActionManager:
                     channels = []
                     for i, ch in enumerate(doc.channels):
                         try:
-                            channels.append({
-                                "index": i,
-                                "name": ch.name,
-                                "kind": str(ch.kind),
-                                "visible": ch.visible,
-                            })
+                            channels.append(
+                                {
+                                    "index": i,
+                                    "name": ch.name,
+                                    "kind": str(ch.kind),
+                                    "visible": ch.visible,
+                                }
+                            )
                         except Exception as e:
                             print(f"Error getting channel {i}: {e}")
                     result["channels"] = channels
