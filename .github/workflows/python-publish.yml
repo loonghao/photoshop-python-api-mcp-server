@@ -44,6 +44,15 @@ on:
       - '.coveragerc'
       - 'codecov.yml'
       - 'renovate.json'
+  # Called by the Release Please workflow once release-please has created the
+  # tag. A tag pushed with GITHUB_TOKEN cannot trigger a workflow, so the
+  # release workflow calls this one directly instead of relying on the tag.
+  workflow_call:
+    inputs:
+      tag_name:
+        description: 'Tag being released, e.g. v0.1.12'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       fast-mode:
@@ -113,7 +122,7 @@ jobs:
   prepare-release:
     name: Prepare Release
     needs: [build-and-test]
-    if: github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    if: github.event_name == 'workflow_call' || github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: windows-latest
     permissions:
       contents: write
@@ -132,8 +141,11 @@ jobs:
         shell: pwsh
       - name: Generate Release Notes
         id: release_notes
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
         run: |
-          $VERSION = $env:GITHUB_REF -replace 'refs/tags/', ''
+          $VERSION = $env:TAG_NAME
+          if (-not $VERSION) { $VERSION = $env:GITHUB_REF -replace 'refs/tags/', '' }
           "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
           "RELEASE_NOTES<<EOF" | Out-File -FilePath $env:GITHUB_ENV -Append
           "# Photoshop MCP Server $VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
@@ -168,7 +180,7 @@ jobs:
   publish-to-pypi:
     name: Publish to PyPI
     needs: [prepare-release]
-    if: github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    if: github.event_name == 'workflow_call' || github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: ubuntu-latest
     permissions:
       id-token: write
