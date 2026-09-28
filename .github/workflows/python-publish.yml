@@ -158,30 +158,20 @@ jobs:
       - name: List all artifacts
         run: Get-ChildItem -Path dist -Recurse -File | Sort-Object FullName
         shell: pwsh
-      - name: Generate Release Notes
-        id: release_notes
-        env:
-          TAG_NAME: ${{ inputs.tag_name }}
-        run: |
-          $VERSION = $env:TAG_NAME
-          if (-not $VERSION) { $VERSION = $env:GITHUB_REF -replace 'refs/tags/', '' }
-          "VERSION=$VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "RELEASE_NOTES<<EOF" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "# Photoshop MCP Server $VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "MCP Server for Photoshop integration using photoshop-python-api." | Out-File -FilePath $env:GITHUB_ENV -Append
-          "" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "## What's Changed" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "* Improved MCP host integration" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "* Added support for Claude Desktop and Claude Windsurf" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "* Enhanced error handling" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "EOF" | Out-File -FilePath $env:GITHUB_ENV -Append
-        shell: pwsh
-      # Update release notes
-      - name: Update Release Notes
+      # Attach the build outputs to the release.
+      #
+      # tag_name must be passed explicitly: softprops defaults to
+      # github.ref_name, which is 'main' when Release Please calls this file
+      # or when it is dispatched by hand, and that would publish against the
+      # wrong ref.
+      #
+      # No body is set on purpose. Release Please already wrote the real
+      # changelog when it created the release, and supplying one here
+      # overwrites it with boilerplate.
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          body: ${{ env.RELEASE_NOTES }}
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
           files: dist/*
           fail_on_unmatched_files: true
         env:
