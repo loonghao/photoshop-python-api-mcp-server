@@ -160,22 +160,22 @@ jobs:
         shell: pwsh
       # Attach the build outputs to the release.
       #
-      # tag_name must be passed explicitly: softprops defaults to
-      # github.ref_name, which is 'main' when Release Please calls this file
-      # or when it is dispatched by hand, and that would publish against the
-      # wrong ref.
+      # The tag must be resolved explicitly: the default ref is 'main' when
+      # Release Please calls this file or when it is dispatched by hand, and
+      # that would publish against the wrong ref.
       #
-      # No body is set on purpose. Release Please already wrote the real
-      # changelog when it created the release, and supplying one here
-      # overwrites it with boilerplate.
+      # gh release upload only adds assets. It does not rewrite the release
+      # body, which matters because Release Please already wrote the real
+      # changelog here and the softprops step this replaces overwrote it with
+      # a generic template. It also avoids the update-a-release call softprops
+      # makes for an existing release, which fails with 'Resource not
+      # accessible by integration'.
       - name: Upload release assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.tag_name || github.ref_name }}
-          files: dist/*
-          fail_on_unmatched_files: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ inputs.tag_name || github.ref_name }}
+        run: gh release upload "$TAG_NAME" dist/* --clobber
+        shell: bash
       # Upload artifacts for PyPI publishing
       - name: Upload artifacts for PyPI
         uses: actions/upload-artifact@v4
