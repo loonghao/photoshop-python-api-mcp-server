@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "photoshop-mcp-server"
-version = "0.1.12"
+version = "0.1.13"
 description = "MCP Server for Photoshop integration using photoshop-python-api"
 authors = ["longhao <hal.long@outlook.com>"]
 readme = "README.md"

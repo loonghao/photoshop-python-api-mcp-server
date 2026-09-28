@@ -11,4 +11,4 @@ APP_DESCRIPTION = "MCP Server for Photoshop integration using photoshop-python-a
 try:
     __version__ = importlib.metadata.version("photoshop-mcp-server")
 except importlib.metadata.PackageNotFoundError:
-    __version__ = "0.1.12"  # x-release-please-version
+    __version__ = "0.1.13"  # x-release-please-version

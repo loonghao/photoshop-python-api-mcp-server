@@ -4,6 +4,17 @@
 
 - redirect logging output from stdout to stderr
 
+## [0.1.13](https://github.com/loonghao/photoshop-python-api-mcp-server/compare/v0.1.12...v0.1.13) (2026-09-28)
+
+
+### Bug Fixes
+
+* **ci:** attach release assets to the right tag without clobbering notes ([0d94c99](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/0d94c99752552b737ceb942573f29b70d9c0f666))
+* **ci:** attach release assets with gh instead of softprops ([f008314](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/f008314c0683ca63eb4b5fe2a3a88123d36fbdd3))
+* **ci:** drop package-name so release-please tags merged release PRs ([fa0ec37](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/fa0ec37367cc664dc3ca2df6d23aa025f6a2d4a7))
+* **ci:** publish release outputs when called by Release Please ([f23dddd](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/f23ddddc2c9cd42da81a8608709080b48591a76f))
+* handle UnitValue and float document dimensions ([863af0a](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/863af0aaa7aae211423bd79bac88441444315750))
+
 ## [0.1.12](https://github.com/loonghao/photoshop-python-api-mcp-server/compare/v0.1.11...v0.1.12) (2026-09-28)
 
 
