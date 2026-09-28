@@ -1,8 +1,13 @@
 name: Build and Release
 
 permissions:
+  # Only `contents` and `id-token` may appear here. This workflow is called
+  # through `uses:` by the Release Please workflow, and a `workflow_call`
+  # callee that requests any other permission makes GitHub reject the whole
+  # caller workflow at compile time: the run ends as `startup_failure` with
+  # zero jobs and an empty log. Keep this block limited to the two keys the
+  # reusable-workflow contract accepts.
   contents: write  # For creating releases
-  pull-requests: write  # For commenting on PRs
   id-token: write  # For PyPI trusted publishing
 
 on:
