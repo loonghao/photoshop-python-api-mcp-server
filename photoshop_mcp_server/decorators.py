@@ -2,12 +2,17 @@
 
 import functools
 import inspect
+import logging
 import sys
 import traceback
 from collections.abc import Callable
 from typing import Any, TypeVar
 
+from photoshop_mcp_server.logging_config import get_logger
+
 F = TypeVar("F", bound=Callable[..., Any])
+
+logger = get_logger(__name__)
 
 
 def debug_tool(func: F) -> F:
@@ -40,8 +45,8 @@ def debug_tool(func: F) -> F:
             tb_lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
             tb_text = "".join(tb_lines)
 
-            # Print to console for server-side debugging
-            print(f"ERROR in {func.__name__}:\n{tb_text}")
+            # Log for server-side debugging; stdout carries JSON-RPC frames only.
+            logger.error("ERROR in %s:\n%s", func.__name__, tb_text)
 
             # Get the function arguments
             arg_spec = inspect.getfullargspec(func)
@@ -83,10 +88,12 @@ def debug_tool(func: F) -> F:
 
 
 def log_tool_call(func: F) -> F:
-    """Log MCP tool function calls.
+    """Log MCP tool function calls at debug level.
 
-    This decorator logs the function name and arguments when called,
-    and the result when the function returns.
+    Records the function name and arguments on entry and the result on return.
+    Both records are emitted at DEBUG level because this decorator is applied
+    to every registered tool: at INFO it would write two lines per call, which
+    is far too chatty for a server whose transport shares the process output.
 
     Args:
         func: The MCP tool function to decorate
@@ -98,6 +105,9 @@ def log_tool_call(func: F) -> F:
 
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
+        if not logger.isEnabledFor(logging.DEBUG):
+            return func(*args, **kwargs)
+
         # Get the function arguments
         arg_spec = inspect.getfullargspec(func)
         arg_names = arg_spec.args
@@ -115,15 +125,17 @@ def log_tool_call(func: F) -> F:
             arg_dict[key] = repr(value)
 
         # Log the function call
-        print(
-            f"TOOL CALL: {func.__name__}({', '.join(f'{k}={v}' for k, v in arg_dict.items())})"
+        logger.debug(
+            "TOOL CALL: %s(%s)",
+            func.__name__,
+            ", ".join(f"{k}={v}" for k, v in arg_dict.items()),
         )
 
         # Call the function
         result = func(*args, **kwargs)
 
         # Log the result
-        print(f"TOOL RESULT: {func.__name__} -> {result}")
+        logger.debug("TOOL RESULT: %s -> %s", func.__name__, result)
 
         return result
 
