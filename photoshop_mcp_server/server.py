@@ -10,16 +10,16 @@ from mcp.server.fastmcp import FastMCP
 # Import version
 from photoshop_mcp_server.app import __version__
 
+# Import logging configuration
+from photoshop_mcp_server.logging_config import configure_root_logging, get_logger
+
 # Import registry
 from photoshop_mcp_server.registry import register_all_resources, register_all_tools
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stderr)],
-)
-logger = logging.getLogger("photoshop-mcp-server")
+# Route all diagnostics to stderr or a file. The stdio transport owns stdout,
+# so a single stray log line there desynchronises the JSON-RPC stream.
+configure_root_logging()
+logger = get_logger(__name__)
 
 
 def create_server(
@@ -100,8 +100,7 @@ def main():
 
     # Configure logging level
     if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-        logger.setLevel(logging.DEBUG)
+        configure_root_logging(level=logging.DEBUG)
         logger.debug("Debug logging enabled")
 
     logger.info(f"Starting Photoshop MCP Server v{args.version or __version__}...")

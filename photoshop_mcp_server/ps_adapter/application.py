@@ -1,9 +1,14 @@
 """Photoshop application adapter."""
 
+import traceback
 from typing import Optional
 
 import photoshop.api as ps
 from photoshop import Session
+
+from photoshop_mcp_server.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class PhotoshopApp:
@@ -75,14 +80,19 @@ class PhotoshopApp:
             Document: The created document.
 
         """
-        print(
-            f"PhotoshopApp.create_document called with: width={width}, height={height}, "
-            f"resolution={resolution}, name={name}, mode={mode}"
+        logger.debug(
+            "PhotoshopApp.create_document called with: width=%s, height=%s, "
+            "resolution=%s, name=%s, mode=%s",
+            width,
+            height,
+            resolution,
+            name,
+            mode,
         )
 
         # Ensure mode is lowercase for consistency
         mode = mode.lower() if isinstance(mode, str) else "rgb"
-        print(f"Normalized mode: {mode}")
+        logger.debug("Normalized mode: %s", mode)
 
         # Get the NewDocumentMode enum value
         try:
@@ -98,81 +108,89 @@ class PhotoshopApp:
 
             # Get the correct enum name or default to NewRGB
             enum_name = mode_map.get(mode.lower(), "NewRGB")
-            print(f"Getting NewDocumentMode enum for: {mode.lower()} -> {enum_name}")
+            logger.debug(
+                "Getting NewDocumentMode enum for: %s -> %s", mode.lower(), enum_name
+            )
 
             # Get the enum value
             mode_enum = getattr(ps.NewDocumentMode, enum_name)
-            print(f"Mode enum: {mode_enum}")
+            logger.debug("Mode enum: %s", mode_enum)
         except (AttributeError, TypeError) as e:
-            print(f"Error getting mode enum: {e}, defaulting to NewRGB")
+            logger.warning("Error getting mode enum: %s, defaulting to NewRGB", e)
             # Default to NewRGB if mode is invalid
             mode_enum = ps.NewDocumentMode.NewRGB
 
         try:
             if hasattr(self, "session"):
-                print("Using session-based approach")
+                logger.debug("Using session-based approach")
                 # Close any existing document
                 if (
                     hasattr(self.session, "active_document")
                     and self.session.active_document
                 ):
                     try:
-                        print("Closing existing document")
+                        logger.debug("Closing existing document")
                         self.session.active_document.close()
                     except Exception as close_error:
-                        print(f"Error closing document: {close_error}")
-                        pass
+                        logger.warning("Error closing document: %s", close_error)
                 # Create a new session with new_document action
-                print("Creating new session with new_document action")
+                logger.debug("Creating new session with new_document action")
                 self.session = Session(action="new_document", auto_close=False)
                 # Set document properties
-                print("Getting active document from session")
+                logger.debug("Getting active document from session")
                 doc = self.session.active_document
-                print(
-                    f"Document created via session: {doc.name if hasattr(doc, 'name') else 'Unknown'}"
+                logger.debug(
+                    "Document created via session: %s",
+                    doc.name if hasattr(doc, "name") else "Unknown",
                 )
                 return doc
             else:
-                print("Using direct Application approach")
-                print(
-                    f"Adding document with params: width={width}, height={height}, "
-                    f"resolution={resolution}, name={name}, mode_enum={mode_enum}"
+                logger.debug("Using direct Application approach")
+                logger.debug(
+                    "Adding document with params: width=%s, height=%s, "
+                    "resolution=%s, name=%s, mode_enum=%s",
+                    width,
+                    height,
+                    resolution,
+                    name,
+                    mode_enum,
                 )
                 doc = self.app.documents.add(width, height, resolution, name, mode_enum)
-                print(
-                    f"Document created via direct app: {doc.name if hasattr(doc, 'name') else 'Unknown'}"
+                logger.debug(
+                    "Document created via direct app: %s",
+                    doc.name if hasattr(doc, "name") else "Unknown",
                 )
                 return doc
         except Exception as e:
             # Log the exception for debugging
-            print(f"Error creating document: {e!s}")
-            import traceback
-
-            traceback.print_exc()
+            logger.error("Error creating document: %s", e)
+            logger.debug(traceback.format_exc())
 
             # Fallback to direct Application if Session fails
             try:
-                print("Trying fallback to direct Application")
+                logger.debug("Trying fallback to direct Application")
                 doc = self.app.documents.add(width, height, resolution, name, mode_enum)
-                print(
-                    f"Document created via fallback: {doc.name if hasattr(doc, 'name') else 'Unknown'}"
+                logger.debug(
+                    "Document created via fallback: %s",
+                    doc.name if hasattr(doc, "name") else "Unknown",
                 )
                 return doc
             except Exception as e2:
-                print(f"Fallback also failed: {e2!s}")
-                traceback.print_exc()
+                logger.error("Fallback also failed: %s", e2)
+                logger.debug(traceback.format_exc())
 
                 # Last resort: try with just the basic parameters
                 try:
-                    print("Trying last resort with basic parameters")
+                    logger.debug("Trying last resort with basic parameters")
                     doc = self.app.documents.add(width, height)
-                    print(
-                        f"Document created via last resort: {doc.name if hasattr(doc, 'name') else 'Unknown'}"
+                    logger.debug(
+                        "Document created via last resort: %s",
+                        doc.name if hasattr(doc, "name") else "Unknown",
                     )
                     return doc
                 except Exception as e3:
-                    print(f"Last resort also failed: {e3!s}")
-                    traceback.print_exc()
+                    logger.error("Last resort also failed: %s", e3)
+                    logger.debug(traceback.format_exc())
                     # Create a detailed error message with all attempts
                     detailed_error = (
                         f"Failed to create document with mode '{mode}'\n\n"
@@ -262,7 +280,7 @@ class PhotoshopApp:
             return '{"success": true}'
         except Exception as e:
             error_str = str(e)
-            print(f"Error executing JavaScript: {e}")
+            logger.error("Error executing JavaScript: %s", e)
 
             # For dialog-related COM errors, retry with dialogs disabled
             if "-2147212704" in error_str:
@@ -279,7 +297,7 @@ class PhotoshopApp:
                         return str(result)
                     return '{"success": true}'
                 except Exception as e2:
-                    print(f"Retry with DialogModes.NO also failed: {e2}")
+                    logger.error("Retry with DialogModes.NO also failed: %s", e2)
 
             # Wrap in try-catch as last resort
             if "try {" not in full_script:
@@ -300,7 +318,9 @@ class PhotoshopApp:
                         return str(result)
                     return '{"success": true}'
                 except Exception as e_final:
-                    print(f"All JavaScript execution attempts failed: {e_final}")
+                    logger.error(
+                        "All JavaScript execution attempts failed: %s", e_final
+                    )
                     return (
                         '{"error": "'
                         + str(e_final).replace('"', '\\"')

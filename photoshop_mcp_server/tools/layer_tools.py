@@ -1,9 +1,14 @@
 """Layer-related MCP tools."""
 
+import traceback
+
 import photoshop.api as ps
 
+from photoshop_mcp_server.logging_config import get_logger
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
 from photoshop_mcp_server.registry import register_tool
+
+logger = get_logger(__name__)
 
 
 def register(mcp):
@@ -52,9 +57,9 @@ def register(mcp):
                 text = text.encode("utf-8", errors="replace").decode(
                     "utf-8", errors="replace"
                 )
-            print(f"Sanitized text: '{text}'")
+            logger.debug("Sanitized text: '%s'", text)
         except Exception as e:
-            print(f"Error sanitizing text: {e}")
+            logger.warning("Error sanitizing text: %s", e)
             return {
                 "success": False,
                 "error": f"Invalid text encoding: {e!s}",
@@ -70,40 +75,45 @@ def register(mcp):
             return {"success": False, "error": "No active document"}
 
         try:
-            print(
-                f"Creating text layer: text='{text}', position=({x}, {y}), "
-                f"size={size}, color=({color_r}, {color_g}, {color_b})"
+            logger.debug(
+                "Creating text layer: text='%s', position=(%s, %s), size=%s, color=(%s, %s, %s)",
+                text,
+                x,
+                y,
+                size,
+                color_r,
+                color_g,
+                color_b,
             )
 
             # Create text layer
-            print("Adding art layer")
+            logger.debug("Adding art layer")
             text_layer = doc.artLayers.add()
-            print("Setting layer kind to TextLayer")
+            logger.debug("Setting layer kind to TextLayer")
             text_layer.kind = ps.LayerKind.TextLayer
 
             # Configure text
-            print("Configuring text item")
+            logger.debug("Configuring text item")
             text_item = text_layer.textItem
             text_item.contents = text
             text_item.position = [x, y]
             text_item.size = size
 
             # Configure color
-            print("Setting text color")
+            logger.debug("Setting text color")
             text_color = ps.SolidColor()
             text_color.rgb.red = color_r
             text_color.rgb.green = color_g
             text_color.rgb.blue = color_b
             text_item.color = text_color
 
-            print(f"Text layer created successfully: {text_layer.name}")
+            logger.debug("Text layer created successfully: %s", text_layer.name)
             return {"success": True, "layer_name": text_layer.name}
         except Exception as e:
-            print(f"Error creating text layer: {e}")
-            import traceback
+            logger.error("Error creating text layer: %s", e)
 
             tb_text = traceback.format_exc()
-            traceback.print_exc()
+            logger.debug(tb_text)
 
             # Create a detailed error message
             detailed_error = (
@@ -158,9 +168,9 @@ def register(mcp):
                 name = name.encode("utf-8", errors="replace").decode(
                     "utf-8", errors="replace"
                 )
-            print(f"Sanitized layer name: '{name}'")
+            logger.debug("Sanitized layer name: '%s'", name)
         except Exception as e:
-            print(f"Error sanitizing layer name: {e}")
+            logger.warning("Error sanitizing layer name: %s", e)
             return {
                 "success": False,
                 "error": f"Invalid name encoding: {e!s}",
@@ -176,8 +186,12 @@ def register(mcp):
             return {"success": False, "error": "No active document"}
 
         try:
-            print(
-                f"Creating solid color layer: name='{name}', color=({color_r}, {color_g}, {color_b})"
+            logger.debug(
+                "Creating solid color layer: name='%s', color=(%s, %s, %s)",
+                name,
+                color_r,
+                color_g,
+                color_b,
             )
 
             # Escape special characters in the name for JavaScript
@@ -211,9 +225,9 @@ def register(mcp):
             }}
             """
 
-            print("Executing JavaScript to create solid color layer")
+            logger.debug("Executing JavaScript to create solid color layer")
             result = ps_app.execute_javascript(js_script)
-            print(f"JavaScript execution result: {result}")
+            logger.debug("JavaScript execution result: %s", result)
 
             # Check if JavaScript returned an error
             if result and isinstance(result, str) and result.startswith("Error:"):
@@ -223,14 +237,13 @@ def register(mcp):
                     "detailed_error": f"JavaScript error while creating solid color layer: {result}",
                 }
 
-            print(f"Solid color layer created successfully: {name}")
+            logger.debug("Solid color layer created successfully: %s", name)
             return {"success": True, "layer_name": name}
         except Exception as e:
-            print(f"Error creating solid color layer: {e}")
-            import traceback
+            logger.error("Error creating solid color layer: %s", e)
 
             tb_text = traceback.format_exc()
-            traceback.print_exc()
+            logger.debug(tb_text)
 
             # Create a detailed error message
             detailed_error = (
