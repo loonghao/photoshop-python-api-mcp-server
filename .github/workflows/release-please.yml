@@ -211,6 +211,11 @@ jobs:
     needs: [release-please]
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
+    # Bounds the wait on the dispatched run. Without it a stuck publish would
+    # hold this job to the 6h default, and because concurrency group
+    # release-please-main is cancel-in-progress: false, every queued
+    # release-please run would be stuck behind it too.
+    timeout-minutes: 90
     permissions:
       contents: read
       # `gh workflow run` posts to /actions/workflows/{id}/dispatches, which
@@ -232,11 +237,19 @@ jobs:
           # release never reached PyPI and nobody noticed. Resolve the run id of
           # what we just started, then block on its result.
           #
+          # Take the timestamp immediately before dispatching, with NO lookback.
+          # gh run list returns newest-first, so a lookback window would let the
+          # first poll match an older unrelated run and report its result as if
+          # it were ours - exactly the silent pass this blocking step exists to
+          # prevent. With the window starting at the dispatch instant, anything
+          # that matches must be the run we just started.
+          #
           # The dispatch is asynchronous, so the run may not be listed on the
-          # first poll; retry a bounded number of times before giving up.
+          # first poll; retry a bounded number of times before giving up. Clock
+          # skew in the safe direction (runner ahead of GitHub) makes this fail
+          # loudly rather than latch onto the wrong run.
           set -euo pipefail
-
-          before=$(date -u -d '-2 minutes' +%Y-%m-%dT%H:%M:%SZ)
+          dispatched_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
           gh workflow run python-publish.yml \
             --ref "${GITHUB_REF_NAME}" \
@@ -245,13 +258,18 @@ jobs:
 
           run_id=""
           for attempt in $(seq 1 20); do
-            run_id=$(gh run list \
+            # --created is the coarse cut; the jq select re-asserts createdAt
+            # against the dispatch instant so the guarantee does not rest on the
+            # filter argument alone. gh's --jq does not accept --arg, so the
+            # timestamp travels through the environment as env.DISPATCHED_AT.
+            run_id=$(DISPATCHED_AT="$dispatched_at" gh run list \
               --workflow python-publish.yml \
               --branch "${GITHUB_REF_NAME}" \
               --event workflow_dispatch \
-              --created ">=$before" \
+              --created ">=$dispatched_at" \
               --limit 1 \
-              --json databaseId --jq '.[0].databaseId' || true)
+              --json databaseId,createdAt \
+              --jq 'map(select(.createdAt >= env.DISPATCHED_AT)) | .[0].databaseId // empty' || true)
             if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
               break
             fi
