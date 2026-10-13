@@ -1,10 +1,15 @@
 """Document-related MCP tools."""
 
+import traceback
+
 import photoshop.api as ps
 
+from photoshop_mcp_server.logging_config import get_logger
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
 from photoshop_mcp_server.ps_adapter.utils import to_float
 from photoshop_mcp_server.registry import register_tool
+
+logger = get_logger(__name__)
 
 
 def register(mcp):
@@ -34,8 +39,12 @@ def register(mcp):
             dict: Result of the operation.
 
         """
-        print(
-            f"Creating document: width={width}, height={height}, name={name}, mode={mode}"
+        logger.debug(
+            "Creating document: width=%s, height=%s, name=%s, mode=%s",
+            width,
+            height,
+            name,
+            mode,
         )
         ps_app = PhotoshopApp()
         try:
@@ -54,8 +63,12 @@ def register(mcp):
                 }
 
             # Create document
-            print(
-                f"Calling ps_app.create_document with width={width}, height={height}, name={name}, mode={mode}"
+            logger.debug(
+                "Calling ps_app.create_document with width=%s, height=%s, name=%s, mode=%s",
+                width,
+                height,
+                name,
+                mode,
             )
             doc = ps_app.create_document(
                 width=width, height=height, name=name, mode=mode
@@ -69,9 +82,9 @@ def register(mcp):
 
             # Get document properties safely
             try:
-                print("Document created, getting properties")
+                logger.debug("Document created, getting properties")
                 doc_name = doc.name
-                print(f"Document name: {doc_name}")
+                logger.debug("Document name: %s", doc_name)
 
                 # `doc.width` / `doc.height` are either a UnitValue (with `.value`)
                 # or a plain float depending on the Photoshop build.
@@ -79,7 +92,9 @@ def register(mcp):
                 doc_height = to_float(
                     getattr(doc, "height", None), default=float(height)
                 )
-                print(f"Document dimensions: width={doc_width}, height={doc_height}")
+                logger.debug(
+                    "Document dimensions: width=%s, height=%s", doc_width, doc_height
+                )
 
                 return {
                     "success": True,
@@ -88,10 +103,8 @@ def register(mcp):
                     "height": doc_height,
                 }
             except Exception as prop_error:
-                print(f"Error getting document properties: {prop_error}")
-                import traceback
-
-                traceback.print_exc()
+                logger.warning("Error getting document properties: %s", prop_error)
+                logger.debug(traceback.format_exc())
                 # Document was created but we couldn't get properties
                 return {
                     "success": True,
@@ -101,11 +114,10 @@ def register(mcp):
                     "warning": f"Created document but couldn't get properties: {prop_error!s}",
                 }
         except Exception as e:
-            print(f"Error creating document: {e}")
-            import traceback
+            logger.error("Error creating document: %s", e)
 
             tb_text = traceback.format_exc()
-            traceback.print_exc()
+            logger.debug(tb_text)
 
             # Create a detailed error message
             detailed_error = (
