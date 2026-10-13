@@ -4,6 +4,13 @@
 
 - redirect logging output from stdout to stderr
 
+## [0.1.14](https://github.com/loonghao/photoshop-python-api-mcp-server/compare/v0.1.13...v0.1.14) (2026-10-13)
+
+
+### Bug Fixes
+
+* route all diagnostic output away from the MCP stdio stream ([#87](https://github.com/loonghao/photoshop-python-api-mcp-server/issues/87)) ([ffe7cda](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/ffe7cda0be7ec4eb7e11116159467154afb91998))
+
 ## [0.1.13](https://github.com/loonghao/photoshop-python-api-mcp-server/compare/v0.1.12...v0.1.13) (2026-09-28)
 
 
