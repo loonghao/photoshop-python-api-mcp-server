@@ -1,12 +1,6 @@
 name: Build and Release
 
 permissions:
-  # Only `contents` and `id-token` may appear here. This workflow is called
-  # through `uses:` by the Release Please workflow, and a `workflow_call`
-  # callee that requests any other permission makes GitHub reject the whole
-  # caller workflow at compile time: the run ends as `startup_failure` with
-  # zero jobs and an empty log. Keep this block limited to the two keys the
-  # reusable-workflow contract accepts.
   contents: write  # For creating releases
   id-token: write  # For PyPI trusted publishing
 
@@ -49,9 +43,13 @@ on:
       - '.coveragerc'
       - 'codecov.yml'
       - 'renovate.json'
-  # Called by the Release Please workflow once release-please has created the
-  # tag. A tag pushed with GITHUB_TOKEN cannot trigger a workflow, so the
-  # release workflow calls this one directly instead of relying on the tag.
+  # Started as a top-level run once release-please has created the tag. A tag
+  # pushed with GITHUB_TOKEN cannot trigger a workflow, so the release workflow
+  # dispatches this one instead of relying on the tag.
+  #
+  # This file must stay a TOP-LEVEL workflow, never a `uses:` callee. PyPI's
+  # Trusted Publisher is registered against python-publish.yml, and a reused
+  # workflow attests to its caller's workflow ref instead, which PyPI rejects.
   workflow_call:
     inputs:
       tag_name:
@@ -65,11 +63,19 @@ on:
         type: boolean
   workflow_dispatch:
     inputs:
+      # Named to match the workflow_call input above so both paths share one
+      # expression downstream. It stays optional: an empty tag means "build and
+      # test only", which is how the manual dispatch is used for ad-hoc checks.
       tag_name:
         description: 'Tag to publish, e.g. v0.1.12. Leave empty to build and test only.'
         required: false
         default: ''
         type: string
+      publish_release:
+        description: 'Attach build outputs to the release and publish them to PyPI'
+        required: false
+        default: true
+        type: boolean
       fast-mode:
         description: 'Skip building wheels and only run tests'
         required: false
@@ -158,14 +164,13 @@ jobs:
   prepare-release:
     name: Prepare Release
     needs: [lint, build-and-test]
-    # github.event_name is the CALLER's event inside a reusable workflow, so
-    # 'workflow_call' never matches here - when Release Please calls this file
-    # the event is 'push' on refs/heads/main. The explicit publish_release input
-    # is what actually signals "this is a real release".
+    # inputs.publish_release / inputs.tag_name are set on the workflow_call and
+    # workflow_dispatch paths alike, so one guard covers both: a real release
+    # (Release Please dispatching with a tag) and a build-only check (an
+    # untagged manual run). github.event_name is the CALLER's event inside a
+    # reusable workflow, so 'workflow_call' would never match here.
     if: inputs.publish_release || inputs.tag_name != '' || github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: windows-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
