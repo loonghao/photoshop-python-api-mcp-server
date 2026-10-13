@@ -176,7 +176,6 @@ jobs:
     permissions:
       contents: write # tag + GitHub Release
       pull-requests: write # the release PR itself
-      id-token: write # passed through to the publish workflow for PyPI trusted publishing
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
@@ -204,22 +203,66 @@ jobs:
   #
   # Dispatching instead starts python-publish.yml as a top-level run, whose
   # workflow ref is python-publish.yml - the ref PyPI expects - so attestations
-  # validate and provenance is kept. The tradeoff is that this job no longer
-  # waits for the publish, so a publish failure shows up on the Build and
-  # Release workflow rather than here.
+  # validate and provenance is kept.
+  #
+  # The step below blocks on the dispatched run's result rather than returning
+  # as soon as the dispatch is accepted, so a failed publish fails this job.
   publish:
     needs: [release-please]
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # `gh workflow run` posts to /actions/workflows/{id}/dispatches, which
+      # needs actions: write. A job-level permissions block REPLACES the token's
+      # scope set rather than adding to it, so this key must be listed here:
+      # with `contents: read` alone the token gets actions: none and the
+      # dispatch fails with 403. The repo's default_workflow_permissions=write
+      # does not cover this, because this job declares permissions explicitly.
+      actions: write
     steps:
       - name: Trigger the build and publish pipeline
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
         run: |
+          # gh workflow run returns as soon as the dispatch is accepted, so on
+          # its own it would let this job go green even when the publish later
+          # fails - the same silent-pass shape as the v0.1.13 incident, where a
+          # release never reached PyPI and nobody noticed. Resolve the run id of
+          # what we just started, then block on its result.
+          #
+          # The dispatch is asynchronous, so the run may not be listed on the
+          # first poll; retry a bounded number of times before giving up.
+          set -euo pipefail
+
+          before=$(date -u -d '-2 minutes' +%Y-%m-%dT%H:%M:%SZ)
+
           gh workflow run python-publish.yml \
-            --ref main \
+            --ref "${GITHUB_REF_NAME}" \
             -f tag_name="$TAG_NAME" \
             -f publish_release=true
+
+          run_id=""
+          for attempt in $(seq 1 20); do
+            run_id=$(gh run list \
+              --workflow python-publish.yml \
+              --branch "${GITHUB_REF_NAME}" \
+              --event workflow_dispatch \
+              --created ">=$before" \
+              --limit 1 \
+              --json databaseId --jq '.[0].databaseId' || true)
+            if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
+              break
+            fi
+            echo "Publish run not visible yet (attempt $attempt); retrying"
+            sleep 5
+          done
+
+          if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+            echo "::error::Dispatched python-publish.yml but could not resolve its run id"
+            exit 1
+          fi
+
+          echo "Waiting for publish run $run_id"
+          gh run watch "$run_id" --exit-status --interval 15

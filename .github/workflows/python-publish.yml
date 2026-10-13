@@ -74,7 +74,13 @@ on:
       publish_release:
         description: 'Attach build outputs to the release and publish them to PyPI'
         required: false
-        default: true
+        # Must stay false. GitHub applies the declared default when the input is
+        # omitted, and every non-empty string is truthy in a GH expression, so
+        # `default: true` would make an untagged manual dispatch (tag left blank
+        # for an ad-hoc build check) satisfy the release guard and then try to
+        # upload to a release named after the branch. Tagged manual releases
+        # still work: they match on inputs.tag_name != '' instead.
+        default: false
         type: boolean
       fast-mode:
         description: 'Skip building wheels and only run tests'
