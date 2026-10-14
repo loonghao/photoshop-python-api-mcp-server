@@ -5,7 +5,7 @@ Photoshop's COM interface is late-bound, so ``Document.width`` returns a
 Reading ``.value`` unconditionally breaks the builds that return a float.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -248,8 +248,9 @@ class TestOpenDocument:
 class TestCreateDocument:
     """Test suite for the ``create_document`` tool.
 
-    This is the only call site passing a non-trivial ``default``, so it is
-    asserted separately from ``open_document``.
+    Unlike ``open_document``, this call site falls back to the requested size
+    rather than to 0, so the unreadable case keeps a plausible number and needs
+    the ``dimensions_unavailable`` signal to stay honest.
     """
 
     @pytest.fixture
@@ -294,13 +295,12 @@ class TestCreateDocument:
         assert result["height"] == 600.0
         assert "warning" not in result
 
-    def test_missing_dimensions_fall_back_to_requested_size(
-        self, create_document_tool
-    ):
-        """When Photoshop reports no dimensions, the requested size is kept.
+    def test_missing_dimensions_are_flagged_unavailable(self, create_document_tool):
+        """When Photoshop reports no dimensions, the requested size is kept but flagged.
 
-        This call site is the only one that passes ``default``, so the created
-        document reports the size the caller asked for instead of 0.
+        The requested size is a better stand-in than 0 for a document that was
+        just created with it, but it is not a confirmed measurement - so
+        ``dimensions_unavailable`` marks it as unreadable.
         """
         doc = MagicMock(spec=["name"])
         doc.name = "created.psd"
@@ -314,9 +314,101 @@ class TestCreateDocument:
         assert result["success"] is True
         assert result["width"] == 1024.0
         assert result["height"] == 768.0
-        # Reached via the helper's default, not by raising and hitting the
-        # except-branch fallback (which would also report the requested size).
+        assert result["dimensions_unavailable"] is True
+        # Reached via the sentinel, not by raising and hitting the except-branch
+        # fallback (which would also report the requested size).
         assert "warning" not in result
+
+    @pytest.mark.parametrize(
+        ("width", "height"),
+        [
+            (object(), 600),
+            (800, object()),
+            (object(), object()),
+        ],
+        ids=["width_only", "height_only", "both"],
+    )
+    def test_unreadable_dimensions_set_unavailable_flag(
+        self, create_document_tool, width, height
+    ):
+        """An unreadable measurement sets ``dimensions_unavailable``.
+
+        Width and height are read independently, so a single unreadable one is
+        enough to flag the payload. The unreadable side falls back to the
+        requested size while the readable one keeps its real value.
+        """
+        doc = FakeDocument(name="created.psd", width=width, height=height)
+
+        with patch(
+            "photoshop_mcp_server.tools.document_tools.PhotoshopApp"
+        ) as mock_app_cls:
+            mock_app_cls.return_value.create_document.return_value = doc
+            result = create_document_tool(width=1000, height=1000, name="created.psd")
+
+        assert result["success"] is True
+        assert result["dimensions_unavailable"] is True
+        assert result["width"] == (800.0 if width == 800 else 1000.0)
+        assert result["height"] == (600.0 if height == 600 else 1000.0)
+
+    def test_unreadable_unit_value_dimensions_set_unavailable_flag(
+        self, create_document_tool
+    ):
+        """A UnitValue whose ``.value`` is not numeric is also unavailable."""
+        doc = FakeDocument(name="created.psd", as_unit_value=True)
+        doc.width = FakeUnitValue("not-a-number")
+        doc.height = FakeUnitValue("not-a-number")
+
+        with patch(
+            "photoshop_mcp_server.tools.document_tools.PhotoshopApp"
+        ) as mock_app_cls:
+            mock_app_cls.return_value.create_document.return_value = doc
+            result = create_document_tool(width=1000, height=1000, name="created.psd")
+
+        assert result["success"] is True
+        assert result["dimensions_unavailable"] is True
+        assert result["width"] == 1000.0
+        assert result["height"] == 1000.0
+
+    def test_zero_dimensions_are_not_flagged_unavailable(self, create_document_tool):
+        """A genuine zero measurement must not be reported as unavailable.
+
+        The requested size is deliberately non-zero so the fallback and a real
+        zero are distinguishable.
+        """
+        doc = FakeDocument(name="created.psd", width=0, height=0)
+
+        with patch(
+            "photoshop_mcp_server.tools.document_tools.PhotoshopApp"
+        ) as mock_app_cls:
+            mock_app_cls.return_value.create_document.return_value = doc
+            result = create_document_tool(width=1000, height=1000, name="created.psd")
+
+        assert result["width"] == 0.0
+        assert result["height"] == 0.0
+        assert "dimensions_unavailable" not in result
+
+    def test_property_read_failure_flags_dimensions_unavailable(
+        self, create_document_tool
+    ):
+        """The except-branch fallback also reports the dimensions as unconfirmed.
+
+        Falling back to the requested size after a failed property read is the
+        same "looks successful but never verified" trap as the sentinel path,
+        so it carries the same signal.
+        """
+        doc = MagicMock(spec=["name"])
+        doc.name = "created.psd"
+        type(doc).width = PropertyMock(side_effect=RuntimeError("COM call failed"))
+
+        with patch(
+            "photoshop_mcp_server.tools.document_tools.PhotoshopApp"
+        ) as mock_app_cls:
+            mock_app_cls.return_value.create_document.return_value = doc
+            result = create_document_tool(width=1024, height=768, name="created.psd")
+
+        assert result["success"] is True
+        assert result["dimensions_unavailable"] is True
+        assert "warning" in result
 
 
 class TestDocumentInfoResource:
