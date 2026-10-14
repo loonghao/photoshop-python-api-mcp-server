@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from photoshop_mcp_server.ps_adapter.utils import to_float
+from photoshop_mcp_server.ps_adapter.utils import UNCONVERTIBLE, to_float, try_float
 
 
 class FakeUnitValue:
@@ -94,6 +94,55 @@ class TestToFloat:
         assert to_float(FakeUnitValue("not-a-number"), default=300.0) == 300.0
 
 
+class TestTryFloat:
+    """Test suite for the ``try_float`` helper."""
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            (1920.5, 1920.5),
+            (1080, 1080.0),
+            ("1920.5", 1920.5),
+        ],
+        ids=["float", "int", "numeric_string"],
+    )
+    def test_convertible_values(self, value, expected):
+        """Convertible values are returned as floats."""
+        result = try_float(value)
+        assert result == expected
+        assert isinstance(result, float)
+
+    def test_unit_value_object(self):
+        """A UnitValue-like object is unwrapped via ``.value``."""
+        assert try_float(FakeUnitValue(1920.5)) == 1920.5
+
+    @pytest.mark.parametrize(
+        ("value",),
+        [
+            (None,),
+            (object(),),
+        ],
+        ids=["none", "opaque_object"],
+    )
+    def test_unconvertible_returns_sentinel(self, value):
+        """An unreadable measurement returns the sentinel instead of 0.0."""
+        assert try_float(value) is UNCONVERTIBLE
+
+    def test_unit_value_with_unconvertible_value_returns_sentinel(self):
+        """A UnitValue whose ``.value`` is not numeric also yields the sentinel."""
+        assert try_float(FakeUnitValue("not-a-number")) is UNCONVERTIBLE
+
+    def test_zero_is_distinguishable_from_unconvertible(self):
+        """A real zero measurement is a float, not the sentinel.
+
+        This is the whole point of the sentinel: ``to_float`` collapses both a
+        genuine ``0.0`` and an unreadable measurement into ``0.0``, so a caller
+        cannot tell them apart.
+        """
+        assert try_float(0) == 0.0
+        assert try_float(0) is not UNCONVERTIBLE
+
+
 class TestOpenDocument:
     """Test suite for the ``open_document`` tool."""
 
@@ -128,6 +177,8 @@ class TestOpenDocument:
         assert result["document_name"] == "test.psd"
         assert result["width"] == 1920.0
         assert result["height"] == 1080.0
+        # The signal is only added when the dimensions cannot be read.
+        assert "dimensions_unavailable" not in result
 
     def test_missing_dimensions_do_not_raise(self, open_document_tool):
         """A document without width/height still returns a successful result."""
@@ -141,6 +192,55 @@ class TestOpenDocument:
             result = open_document_tool("C:/tmp/test.psd")
 
         assert result["success"] is True
+        assert result["width"] == 0.0
+        assert result["height"] == 0.0
+
+    @pytest.mark.parametrize(
+        ("width", "height"),
+        [
+            (object(), 1080),
+            (1920, object()),
+            (object(), object()),
+        ],
+        ids=["width_only", "height_only", "both"],
+    )
+    def test_unreadable_dimensions_set_unavailable_flag(
+        self, open_document_tool, width, height
+    ):
+        """An unreadable measurement sets ``dimensions_unavailable``.
+
+        Width and height are read independently, so a single unreadable one is
+        enough to flag the payload.
+        """
+        doc = FakeDocument(width=width, height=height)
+
+        with patch(
+            "photoshop_mcp_server.tools.document_tools.PhotoshopApp"
+        ) as mock_app_cls:
+            mock_app_cls.return_value.open_document.return_value = doc
+            result = open_document_tool("C:/tmp/test.psd")
+
+        assert result["success"] is True
+        assert result["dimensions_unavailable"] is True
+        assert result["width"] == (1920.0 if width == 1920 else 0.0)
+        assert result["height"] == (1080.0 if height == 1080 else 0.0)
+
+    def test_unreadable_unit_value_dimensions_set_unavailable_flag(
+        self, open_document_tool
+    ):
+        """A UnitValue whose ``.value`` is not numeric is also unavailable."""
+        doc = FakeDocument(as_unit_value=True)
+        doc.width = FakeUnitValue("not-a-number")
+        doc.height = FakeUnitValue("not-a-number")
+
+        with patch(
+            "photoshop_mcp_server.tools.document_tools.PhotoshopApp"
+        ) as mock_app_cls:
+            mock_app_cls.return_value.open_document.return_value = doc
+            result = open_document_tool("C:/tmp/test.psd")
+
+        assert result["success"] is True
+        assert result["dimensions_unavailable"] is True
         assert result["width"] == 0.0
         assert result["height"] == 0.0
 
@@ -254,6 +354,56 @@ class TestDocumentInfoResource:
         assert result["height"] == 1080.0
         assert result["resolution"] == 72
         assert result["layers_count"] == 0
+        # The signal is only added when the dimensions cannot be read.
+        assert "dimensions_unavailable" not in result
+
+    @pytest.mark.parametrize(
+        ("width", "height"),
+        [
+            (object(), 1080),
+            (1920, object()),
+            (object(), object()),
+        ],
+        ids=["width_only", "height_only", "both"],
+    )
+    def test_unreadable_dimensions_set_unavailable_flag(
+        self, document_info_resource, width, height
+    ):
+        """An unreadable measurement sets ``dimensions_unavailable``.
+
+        The existing fields stay in place, so consumers that ignore unknown keys
+        keep seeing the same payload shape.
+        """
+        doc = FakeDocument(width=width, height=height)
+
+        with patch(
+            "photoshop_mcp_server.resources.document_resources.PhotoshopApp"
+        ) as mock_app_cls:
+            mock_app_cls.return_value.get_active_document.return_value = doc
+            result = document_info_resource()
+
+        assert result["dimensions_unavailable"] is True
+        assert result["name"] == "test.psd"
+        assert result["resolution"] == 72
+        assert result["layers_count"] == 0
+        assert result["width"] == (1920.0 if width == 1920 else 0.0)
+        assert result["height"] == (1080.0 if height == 1080 else 0.0)
+
+    def test_zero_dimensions_are_not_flagged_unavailable(
+        self, document_info_resource
+    ):
+        """A genuine zero measurement must not be reported as unavailable."""
+        doc = FakeDocument(width=0, height=0)
+
+        with patch(
+            "photoshop_mcp_server.resources.document_resources.PhotoshopApp"
+        ) as mock_app_cls:
+            mock_app_cls.return_value.get_active_document.return_value = doc
+            result = document_info_resource()
+
+        assert result["width"] == 0.0
+        assert result["height"] == 0.0
+        assert "dimensions_unavailable" not in result
 
     def test_no_active_document_returns_error(self, document_info_resource):
         """The no-document path is unchanged."""

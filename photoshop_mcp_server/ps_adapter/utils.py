@@ -11,6 +11,9 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fi
 # Type variable for generic function
 T = TypeVar("T")
 
+#: Sentinel returned by :func:`try_float` when a measurement cannot be read.
+UNCONVERTIBLE = object()
+
 
 def to_float(value: Any, default: float = 0.0) -> float:
     """Convert a Photoshop measurement into a plain float.
@@ -38,6 +41,33 @@ def to_float(value: Any, default: float = 0.0) -> float:
     except (TypeError, ValueError):
         logger.warning(f"Could not convert {raw!r} to float, using default {default!r}")
         return default
+
+
+def try_float(value: Any) -> float | object:
+    """Convert a Photoshop measurement into a float, or report it unreadable.
+
+    Same conversion rules as :func:`to_float`, but instead of collapsing an
+    unreadable measurement into a stand-in number it returns the
+    :data:`UNCONVERTIBLE` sentinel. Callers that must tell a real ``0.0`` apart
+    from a measurement Photoshop never reported use this and pick their own
+    fallback afterwards.
+
+    The warning log is kept, so an unreadable measurement stays visible in the
+    server log whether or not the caller surfaces the condition to the client.
+
+    Args:
+        value: The raw value returned by Photoshop.
+
+    Returns:
+        float | object: The measurement as a float, or ``UNCONVERTIBLE``.
+
+    """
+    raw = getattr(value, "value", value)
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        logger.warning(f"Could not convert {raw!r} to float; dimensions unavailable")
+        return UNCONVERTIBLE
 
 
 def with_retry(

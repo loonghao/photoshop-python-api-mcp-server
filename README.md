@@ -93,7 +93,7 @@ Add the following to your MCP host configuration (works with Claude Desktop, Win
 ### Available Resources
 
 - `photoshop://info` - Get Photoshop application information
-- `photoshop://document/info` - Get active document information
+- `photoshop://document/info` - Get active document information (name, width, height, resolution, layers count). When Photoshop does not report the document dimensions, `width`/`height` are `0.0` and an extra `dimensions_unavailable: true` field marks them as unreadable rather than genuinely zero. `photoshop_open_document` reports the same signal.
 - `photoshop://document/layers` - Get layers in the active document
 
 ### Available Tools

@@ -6,7 +6,7 @@ import photoshop.api as ps
 
 from photoshop_mcp_server.logging_config import get_logger
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
-from photoshop_mcp_server.ps_adapter.utils import to_float
+from photoshop_mcp_server.ps_adapter.utils import UNCONVERTIBLE, to_float, try_float
 from photoshop_mcp_server.registry import register_tool
 
 logger = get_logger(__name__)
@@ -159,14 +159,24 @@ def register(mcp):
         ps_app = PhotoshopApp()
         try:
             doc = ps_app.open_document(file_path)
-            return {
+            # `doc.width` / `doc.height` are either a UnitValue (with `.value`)
+            # or a plain float depending on the Photoshop build. When neither can
+            # be read the dimensions are reported as 0.0 and flagged as
+            # unavailable, so a client can tell a genuine zero apart from an
+            # unreadable measurement.
+            width = try_float(getattr(doc, "width", None))
+            height = try_float(getattr(doc, "height", None))
+
+            result = {
                 "success": True,
                 "document_name": doc.name,
-                # `doc.width` / `doc.height` are either a UnitValue (with `.value`)
-                # or a plain float depending on the Photoshop build.
-                "width": to_float(getattr(doc, "width", None)),
-                "height": to_float(getattr(doc, "height", None)),
+                "width": 0.0 if width is UNCONVERTIBLE else width,
+                "height": 0.0 if height is UNCONVERTIBLE else height,
             }
+            if width is UNCONVERTIBLE or height is UNCONVERTIBLE:
+                result["dimensions_unavailable"] = True
+
+            return result
         except Exception as e:
             return {"success": False, "error": str(e)}
 
