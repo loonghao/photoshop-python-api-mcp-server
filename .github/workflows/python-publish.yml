@@ -173,8 +173,7 @@ jobs:
     # inputs.publish_release / inputs.tag_name are set on the workflow_call and
     # workflow_dispatch paths alike, so one guard covers both: a real release
     # (Release Please dispatching with a tag) and a build-only check (an
-    # untagged manual run). github.event_name is the CALLER's event inside a
-    # reusable workflow, so 'workflow_call' would never match here.
+    # untagged manual run).
     if: inputs.publish_release || inputs.tag_name != '' || github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: windows-latest
     steps:
