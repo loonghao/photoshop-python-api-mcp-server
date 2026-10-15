@@ -100,7 +100,7 @@ Add the following to your MCP host configuration (works with Claude Desktop, Win
 
 The server provides various tools for controlling Photoshop:
 
-- **Document Tools**: Create, open, and save documents
+- **Document Tools**: Create, open, and save documents. `photoshop_create_document` reports the same `dimensions_unavailable` signal, but falls back to the requested size instead of `0.0` when Photoshop does not report the new document's dimensions.
 - **Layer Tools**: Create text layers, solid color layers, etc.
 - **Session Tools**: Get information about Photoshop session, active document, selection
 - **Script Tools**: Run arbitrary Photoshop JavaScript (JSX) with `photoshop_execute_jsx`

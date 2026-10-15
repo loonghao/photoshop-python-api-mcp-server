@@ -6,7 +6,7 @@ import photoshop.api as ps
 
 from photoshop_mcp_server.logging_config import get_logger
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
-from photoshop_mcp_server.ps_adapter.utils import UNCONVERTIBLE, to_float, try_float
+from photoshop_mcp_server.ps_adapter.utils import UNCONVERTIBLE, try_float
 from photoshop_mcp_server.registry import register_tool
 
 logger = get_logger(__name__)
@@ -87,30 +87,45 @@ def register(mcp):
                 logger.debug("Document name: %s", doc_name)
 
                 # `doc.width` / `doc.height` are either a UnitValue (with `.value`)
-                # or a plain float depending on the Photoshop build.
-                doc_width = to_float(getattr(doc, "width", None), default=float(width))
-                doc_height = to_float(
-                    getattr(doc, "height", None), default=float(height)
+                # or a plain float depending on the Photoshop build. When either
+                # cannot be read we fall back to the requested size but flag the
+                # payload as `dimensions_unavailable`, so a client can tell a
+                # confirmed measurement apart from the size it merely asked for.
+                doc_width = try_float(getattr(doc, "width", None))
+                doc_height = try_float(getattr(doc, "height", None))
+                dimensions_unavailable = (
+                    doc_width is UNCONVERTIBLE or doc_height is UNCONVERTIBLE
                 )
                 logger.debug(
-                    "Document dimensions: width=%s, height=%s", doc_width, doc_height
+                    "Document dimensions: width=%s, height=%s (unavailable=%s)",
+                    doc_width,
+                    doc_height,
+                    dimensions_unavailable,
                 )
 
-                return {
+                result = {
                     "success": True,
                     "document_name": doc_name,
-                    "width": doc_width,
-                    "height": doc_height,
+                    "width": float(width) if doc_width is UNCONVERTIBLE else doc_width,
+                    "height": (
+                        float(height) if doc_height is UNCONVERTIBLE else doc_height
+                    ),
                 }
+                if dimensions_unavailable:
+                    result["dimensions_unavailable"] = True
+
+                return result
             except Exception as prop_error:
                 logger.warning("Error getting document properties: %s", prop_error)
                 logger.debug(traceback.format_exc())
-                # Document was created but we couldn't get properties
+                # Document was created but we couldn't get properties, so the
+                # reported size is only what was requested - never confirmed.
                 return {
                     "success": True,
                     "document_name": name,
                     "width": width,
                     "height": height,
+                    "dimensions_unavailable": True,
                     "warning": f"Created document but couldn't get properties: {prop_error!s}",
                 }
         except Exception as e:
