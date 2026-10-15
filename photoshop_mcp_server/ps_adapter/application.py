@@ -241,7 +241,8 @@ class PhotoshopApp:
             script (str): JavaScript code to execute.
 
         Returns:
-            str: The result of the JavaScript execution.
+            str: The result of the JavaScript execution, or ``None`` when the
+                script returned no value at all.
 
         Note:
             Photoshop uses ExtendScript (ECMAScript 3) which lacks a native
@@ -250,6 +251,10 @@ class PhotoshopApp:
             comtypes requires all 3 arguments for doJavaScript to dispatch
             correctly. Passing only the script string triggers COM error
             -2147352567 on most Photoshop versions.
+
+            A script with no return value is reported as ``None`` rather than a
+            canned success payload, so callers can tell "ran, returned nothing"
+            apart from "ran, returned success".
 
         """
         # Ensure script ends with semicolon
@@ -277,7 +282,7 @@ class PhotoshopApp:
             result = self.app.doJavaScript(full_script, None, 1)
             if result is not None:
                 return str(result)
-            return '{"success": true}'
+            return None
         except Exception as e:
             error_str = str(e)
             logger.error("Error executing JavaScript: %s", e)
@@ -295,7 +300,7 @@ class PhotoshopApp:
                     result = self.app.doJavaScript(safer_script, None, 1)
                     if result is not None:
                         return str(result)
-                    return '{"success": true}'
+                    return None
                 except Exception as e2:
                     logger.error("Retry with DialogModes.NO also failed: %s", e2)
 
@@ -316,7 +321,7 @@ class PhotoshopApp:
                     result = self.app.doJavaScript(wrapped, None, 1)
                     if result is not None:
                         return str(result)
-                    return '{"success": true}'
+                    return None
                 except Exception as e_final:
                     logger.error(
                         "All JavaScript execution attempts failed: %s", e_final

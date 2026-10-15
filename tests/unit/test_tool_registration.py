@@ -20,6 +20,7 @@ from mcp.server.fastmcp import FastMCP
 import photoshop_mcp_server.tools as tools_package
 import photoshop_mcp_server.tools.script_tools as script_tools
 from photoshop_mcp_server import registry
+from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
 from photoshop_mcp_server.server import create_server
 
 # Modules that live in the tools package but do not expose tools themselves.
@@ -72,6 +73,22 @@ class FakePhotoshopApp:
 
     def execute_javascript(self, script):
         self.scripts.append(script)
+        return self._result
+
+
+class _FakeComApp:
+    """Stand-in for the COM ``Application`` object behind ``PhotoshopApp``.
+
+    Only ``doJavaScript`` is faked, so the surrounding polyfill injection and
+    the real ``execute_javascript`` logic are exercised. Importing the real
+    ``PhotoshopApp`` at construction time would try to reach Photoshop over COM,
+    so tests build an instance without calling ``__init__``.
+    """
+
+    def __init__(self, result):
+        self._result = result
+
+    def doJavaScript(self, script, arguments, execution_mode):
         return self._result
 
 
@@ -200,3 +217,100 @@ class TestExecuteJsxFailureContract:
         )
 
         assert result == {"success": True, "result": '{"error": null, "success": true}'}
+
+
+class TestScriptErrorMessageJudgement:
+    """Only an explicit ``success: false`` counts as a script failure.
+
+    A script may legitimately return its own JSON object carrying an ``error``
+    key without the script itself failing. Treating that as a tool failure makes
+    callers stop and investigate a script that worked, so the judgement keys off
+    the explicit failure flag and requires an ``error`` message alongside it.
+    """
+
+    def test_explicit_failure_with_error_message_is_a_failure(self):
+        """``success: false`` plus an ``error`` message is reported."""
+        assert (
+            script_tools._script_error_message('{"error": "boom", "success": false}')
+            == "boom"
+        )
+
+    def test_error_key_without_failure_flag_is_not_a_failure(self):
+        """A script's own ``error`` key is ordinary output, not a failure."""
+        assert (
+            script_tools._script_error_message('{"error": "no layers found"}') is None
+        )
+
+    def test_error_key_with_success_true_is_not_a_failure(self):
+        """An ``error`` key alongside ``success: true`` stays a success."""
+        assert (
+            script_tools._script_error_message(
+                '{"error": "no layers", "success": true}'
+            )
+            is None
+        )
+
+    def test_failure_flag_with_empty_error_falls_back_to_a_message(self):
+        """A failure payload with no usable message still reports that it failed."""
+        assert (
+            script_tools._script_error_message('{"error": "", "success": false}')
+            == "Script execution failed"
+        )
+
+    def test_failure_flag_without_error_key_is_not_reported(self):
+        """``success: false`` alone carries no message to surface."""
+        assert script_tools._script_error_message('{"success": false}') is None
+
+    def test_non_dict_and_non_json_payloads_are_not_failures(self):
+        """Ordinary script output is never mistaken for a failure payload."""
+        assert script_tools._script_error_message("42") is None
+        assert script_tools._script_error_message("not json at all") is None
+        assert script_tools._script_error_message('["error", false]') is None
+
+    def test_none_result_is_not_a_failure(self):
+        """A script that returned no value at all is not an error payload."""
+        assert script_tools._script_error_message(None) is None
+
+
+class TestNoReturnValueIsNotAFakeSuccess:
+    """``doJavaScript`` returning ``None`` must not become ``{"success": true}``.
+
+    The adapter used to substitute a canned success payload for a script with no
+    return value, which told callers the script succeeded when all that is known
+    is that it returned nothing. It now reports the empty value itself.
+    """
+
+    def test_execute_javascript_returns_none_when_script_returns_nothing(
+        self, monkeypatch
+    ):
+        """A ``None`` result from ``doJavaScript`` is passed through as ``None``."""
+        app = PhotoshopApp.__new__(PhotoshopApp)
+        app.app = _FakeComApp(None)
+
+        assert app.execute_javascript("var x = 1;") is None
+
+    def test_execute_javascript_does_not_fabricate_a_success_payload(
+        self, monkeypatch
+    ):
+        """The empty result is not dressed up as a successful script run."""
+        app = PhotoshopApp.__new__(PhotoshopApp)
+        app.app = _FakeComApp(None)
+
+        result = app.execute_javascript("var x = 1;")
+
+        assert result != '{"success": true}'
+
+    def test_tool_reports_empty_result_without_claiming_success(
+        self, clean_registry, monkeypatch
+    ):
+        """The tool surfaces no return value as an empty result, not a success."""
+        result = _call_execute_jsx(monkeypatch, lambda: FakePhotoshopApp(None))
+
+        assert result == {"success": True, "result": None}
+
+    def test_execute_javascript_still_returns_script_output(self, monkeypatch):
+        """A script that does return a value is unaffected by the change."""
+        app = PhotoshopApp.__new__(PhotoshopApp)
+        app.app = _FakeComApp("42")
+
+        assert app.execute_javascript("42;") == "42"
