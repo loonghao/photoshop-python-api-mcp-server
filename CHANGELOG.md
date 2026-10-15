@@ -4,6 +4,19 @@
 
 - redirect logging output from stdout to stderr
 
+## [0.2.0](https://github.com/loonghao/photoshop-python-api-mcp-server/compare/v0.1.14...v0.2.0) (2026-10-15)
+
+
+### Features
+
+* signal unreadable document dimensions in document/info and open_document ([#92](https://github.com/loonghao/photoshop-python-api-mcp-server/issues/92)) ([b4db6b4](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/b4db6b4029fe7f76090068581d4f41a72f38da62))
+
+
+### Bug Fixes
+
+* dispatch publish workflow as top-level run to fix PyPI attestation ([#89](https://github.com/loonghao/photoshop-python-api-mcp-server/issues/89)) ([ba68e54](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/ba68e54517cb8234bb10ec4425ce24ad0fc801f7))
+* judge script failures only on explicit success:false and drop fake success payload ([058c11e](https://github.com/loonghao/photoshop-python-api-mcp-server/commit/058c11ee6954c2049609d0a820fa728567b42308))
+
 ## [0.1.14](https://github.com/loonghao/photoshop-python-api-mcp-server/compare/v0.1.13...v0.1.14) (2026-10-13)
 
 
