@@ -15,6 +15,11 @@ def _script_error_message(result):
     ``{\"success\": true, ...}`` and hand the error string to the caller as if it
     were script output, so callers could not tell failure from success.
 
+    Only an explicit ``success: false`` counts as a failure. A script may
+    legitimately return its own JSON object that carries an ``error`` key
+    (for example ``{"error": "no layers found"}``) without meaning the script
+    itself failed, so the ``error`` key alone is not enough to judge by.
+
     Args:
         result: The raw value returned by ``execute_javascript``.
 
@@ -35,12 +40,11 @@ def _script_error_message(result):
     if not isinstance(payload, dict):
         return None
 
-    succeeded = payload.get("success")
-    error = payload.get("error")
-    if succeeded is False or (error is not None and succeeded is None):
-        return str(error) if error else "Script execution failed"
+    if payload.get("success") is not False or "error" not in payload:
+        return None
 
-    return None
+    error = payload["error"]
+    return str(error) if error else "Script execution failed"
 
 
 def register(mcp):
