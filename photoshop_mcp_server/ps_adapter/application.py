@@ -212,28 +212,10 @@ class PhotoshopApp:
             Document: The opened document.
 
         """
-        try:
-            if hasattr(self, "session"):
-                # Close any existing document
-                if (
-                    hasattr(self.session, "active_document")
-                    and self.session.active_document
-                ):
-                    try:
-                        self.session.active_document.close()
-                    except Exception:
-                        pass
-                # Create a new session with open action
-                self.session = Session(
-                    file_path=file_path, action="open", auto_close=False
-                )
-                # Return the active document
-                return self.session.active_document
-            else:
-                return self.app.open(file_path)
-        except Exception:
-            # Fallback to direct Application if Session fails
-            return self.app.open(file_path)
+        # Session(action="open") only runs its action inside a ``with`` block, so
+        # the previous session-based path returned the old active document (after
+        # closing it) without opening file_path.
+        return self.app.open(file_path)
 
     def execute_javascript(self, script):
         """Execute JavaScript code in Photoshop.
