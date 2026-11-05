@@ -1,5 +1,6 @@
 """Photoshop application adapter."""
 
+import json
 import traceback
 from typing import Optional
 
@@ -266,7 +267,8 @@ class PhotoshopApp:
             "if(typeof JSON==='undefined'){JSON={stringify:function(v){"
             "if(v===null)return'null';"
             "if(typeof v==='number'||typeof v==='boolean')return String(v);"
-            "if(typeof v==='string')return'\"'+v.replace(/\\\\/g,'\\\\\\\\').replace(/\"/g,'\\\\\"')+'\"';"
+            "if(typeof v==='string')return'\"'+v.replace(/\\\\/g,'\\\\\\\\').replace(/\"/g,'\\\\\"')"
+            ".replace(/\\n/g,'\\\\n').replace(/\\r/g,'\\\\r').replace(/\\t/g,'\\\\t')+'\"';"
             "if(v.constructor===Array){var a=[];for(var i=0;i<v.length;i++)"
             "a.push(JSON.stringify(v[i]));return'['+a.join(',')+']';}"
             "if(typeof v==='object'){var a=[];for(var k in v)if(v.hasOwnProperty(k))"
@@ -326,12 +328,6 @@ class PhotoshopApp:
                     logger.error(
                         "All JavaScript execution attempts failed: %s", e_final
                     )
-                    return (
-                        '{"error": "'
-                        + str(e_final).replace('"', '\\"')
-                        + '", "success": false}'
-                    )
+                    return json.dumps({"error": str(e_final), "success": False})
 
-            return (
-                '{"error": "' + error_str.replace('"', '\\"') + '", "success": false}'
-            )
+            return json.dumps({"error": error_str, "success": False})
