@@ -103,7 +103,10 @@ The server provides various tools for controlling Photoshop:
 - **Document Tools**: Create, open, and save documents
 - **Layer Tools**: Create text layers, solid color layers, etc.
 - **Session Tools**: Get information about Photoshop session, active document, selection
-- **Script Tools**: Run arbitrary Photoshop JavaScript (JSX) with `photoshop_execute_jsx`
+- **Script Tools**: Run arbitrary Photoshop JavaScript (JSX) with `photoshop_execute_jsx`, or a `.jsx` file on disk
+  with `photoshop_execute_jsx_file`
+- **Action Tools**: List loaded action sets with `photoshop_list_actions` and run an action with
+  `photoshop_play_action`
 
 ### `photoshop_execute_jsx`
 
