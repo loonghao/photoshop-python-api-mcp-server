@@ -1,6 +1,7 @@
 """Script execution MCP tools for Photoshop."""
 
 import json
+from pathlib import Path
 
 from photoshop_mcp_server.ps_adapter.application import PhotoshopApp
 from photoshop_mcp_server.registry import register_tool
@@ -130,4 +131,48 @@ def register(mcp):
         }
 
     tool_name = register_tool(mcp, execute_jsx, "execute_jsx")
-    return [tool_name]
+
+    def execute_jsx_file(file_path: str) -> dict:
+        """Execute a .jsx file on disk in Photoshop via ``$.evalFile``.
+
+        Use this for existing script files, for example scripts in
+        ``Presets/Scripts`` that actions or users also run.
+
+        Args:
+            file_path: Absolute path to the .jsx file.
+
+        Returns:
+            dict: 'success' flag, the resolved 'file_path' and the script's
+                'result', or 'error' if the file is missing or the script failed.
+
+        """
+        path = Path(file_path)
+        if not path.is_file():
+            return {"success": False, "error": f"Script file not found: {file_path}"}
+
+        resolved = str(path.resolve())
+        script = (
+            "(function () {"
+            "app.displayDialogs = DialogModes.NO;"
+            f"var f = new File({json.dumps(resolved)});"
+            "if (!f.exists) {"
+            "return JSON.stringify({success: false, error: 'Script file not found'});"
+            "}"
+            "var result = $.evalFile(f);"
+            "return result === undefined ? undefined : String(result);"
+            "})()"
+        )
+        try:
+            ps_app = PhotoshopApp()
+            result = ps_app.execute_javascript(script)
+        except Exception as e:
+            return {"success": False, "file_path": resolved, "error": str(e)}
+
+        error_message = _script_error_message(result)
+        if error_message is not None:
+            return {"success": False, "file_path": resolved, "error": error_message}
+
+        return {"success": True, "file_path": resolved, "result": result}
+
+    file_tool_name = register_tool(mcp, execute_jsx_file, "execute_jsx_file")
+    return [tool_name, file_tool_name]
